@@ -29,6 +29,8 @@ import {
   INITIAL_NOTIFICATIONS,
   INITIAL_AI_INSIGHTS,
   DEMO_ACCOUNTS,
+  SAMPLE_PROPERTY_IDS,
+  SAMPLE_PROPERTY_NAMES,
 } from "./data/mockData";
 import {
   ActiveTab,
@@ -91,24 +93,60 @@ export function App() {
   const [selectedPropertyId, setSelectedPropertyId] = useState<string>("all");
   const [isMobilePreview, setIsMobilePreview] = useState<boolean>(false);
 
+  // Helpers to identify and cleanly purge sample / demo data from cloud & local state
+  const isSampleProp = (p: Property) =>
+    SAMPLE_PROPERTY_IDS.includes(p.id) ||
+    SAMPLE_PROPERTY_NAMES.some((name) => p.name?.toLowerCase().trim() === name.toLowerCase().trim());
+
+  const isSampleRm = (r: Room) =>
+    SAMPLE_PROPERTY_IDS.includes(r.propertyId) ||
+    SAMPLE_PROPERTY_NAMES.some((name) => r.propertyName?.toLowerCase().trim() === name.toLowerCase().trim()) ||
+    [
+      "rm-101", "rm-102", "rm-103", "rm-104",
+      "rm-201", "rm-202",
+      "rm-301", "rm-302", "rm-303", "rm-304", "rm-305", "rm-306",
+      "rm-401", "rm-402", "rm-403",
+      "rm-501", "rm-502",
+    ].includes(r.id);
+
+  const isSampleTen = (t: Tenant) =>
+    (t.propertyId && SAMPLE_PROPERTY_IDS.includes(t.propertyId)) ||
+    (t.propertyName && SAMPLE_PROPERTY_NAMES.some((name) => t.propertyName?.toLowerCase().trim() === name.toLowerCase().trim())) ||
+    ["ten-1", "ten-2", "ten-3", "ten-4", "ten-5", "ten-6", "ten-7", "ten-8", "ten-9", "ten-10"].includes(t.id);
+
+  const isSamplePay = (p: PaymentRecord) =>
+    (p.propertyId && SAMPLE_PROPERTY_IDS.includes(p.propertyId)) ||
+    (p.propertyName && SAMPLE_PROPERTY_NAMES.some((name) => p.propertyName?.toLowerCase().trim() === name.toLowerCase().trim())) ||
+    ["pay-101", "pay-102", "pay-103", "pay-104", "pay-105", "pay-106", "pay-107", "pay-108", "pay-109", "pay-110", "pay-111", "pay-112", "pay-201", "pay-301", "pay-302"].includes(p.id);
+
+  const isSampleMaint = (m: MaintenanceTicket) =>
+    (m.propertyId && SAMPLE_PROPERTY_IDS.includes(m.propertyId)) ||
+    (m.propertyName && SAMPLE_PROPERTY_NAMES.some((name) => m.propertyName?.toLowerCase().trim() === name.toLowerCase().trim())) ||
+    ["mnt-101", "mnt-102", "mnt-103", "mnt-104", "mnt-105", "maint-1", "maint-2"].includes(m.id);
+
+  const isSampleCnt = (c: Contract) =>
+    (c.propertyId && SAMPLE_PROPERTY_IDS.includes(c.propertyId)) ||
+    (c.propertyName && SAMPLE_PROPERTY_NAMES.some((name) => c.propertyName?.toLowerCase().trim() === name.toLowerCase().trim())) ||
+    ["cnt-101", "cnt-102", "cnt-201", "cnt-301"].includes(c.id);
+
   // Domain Entities State initialized from persistent storage & synchronized with Firebase Firestore
   const [properties, setProperties] = useState<Property[]>(() =>
-    loadFromStorage("properties", INITIAL_PROPERTIES)
+    loadFromStorage("properties", INITIAL_PROPERTIES).filter((p: Property) => !isSampleProp(p))
   );
   const [rooms, setRooms] = useState<Room[]>(() =>
-    loadFromStorage("rooms", INITIAL_ROOMS)
+    loadFromStorage("rooms", INITIAL_ROOMS).filter((r: Room) => !isSampleRm(r))
   );
   const [tenants, setTenants] = useState<Tenant[]>(() =>
-    loadFromStorage("tenants", INITIAL_TENANTS)
+    loadFromStorage("tenants", INITIAL_TENANTS).filter((t: Tenant) => !isSampleTen(t))
   );
   const [payments, setPayments] = useState<PaymentRecord[]>(() =>
-    loadFromStorage("payments", INITIAL_PAYMENTS)
+    loadFromStorage("payments", INITIAL_PAYMENTS).filter((p: PaymentRecord) => !isSamplePay(p))
   );
   const [maintenanceTickets, setMaintenanceTickets] = useState<MaintenanceTicket[]>(() =>
-    loadFromStorage("maintenance", INITIAL_MAINTENANCE_TICKETS)
+    loadFromStorage("maintenance", INITIAL_MAINTENANCE_TICKETS).filter((m: MaintenanceTicket) => !isSampleMaint(m))
   );
   const [contracts, setContracts] = useState<Contract[]>(() =>
-    loadFromStorage("contracts", INITIAL_CONTRACTS)
+    loadFromStorage("contracts", INITIAL_CONTRACTS).filter((c: Contract) => !isSampleCnt(c))
   );
   const [notifications, setNotifications] = useState<AppNotification[]>(() =>
     loadFromStorage("notifications", INITIAL_NOTIFICATIONS)
@@ -129,15 +167,17 @@ export function App() {
       "properties",
       (cloudProperties) => {
         if (cloudProperties.length > 0) {
-          setProperties(cloudProperties);
-          saveToStorage("properties", cloudProperties);
+          // Purge sample properties from cloud if any exist
+          const sampleProps = cloudProperties.filter(isSampleProp);
+          if (sampleProps.length > 0) {
+            sampleProps.forEach((sp) => deleteFromCloud("properties", sp.id));
+          }
+          const userProps = cloudProperties.filter((p) => !isSampleProp(p));
+          setProperties(userProps);
+          saveToStorage("properties", userProps);
         } else {
-          // If Firestore is empty on load, seed with current multi-property portfolio
-          const initialData = loadFromStorage("properties", INITIAL_PROPERTIES);
-          const dataToSeed = initialData.length > 0 ? initialData : INITIAL_PROPERTIES;
-          batchSaveToCloud("properties", dataToSeed);
-          setProperties(dataToSeed);
-          saveToStorage("properties", dataToSeed);
+          setProperties([]);
+          saveToStorage("properties", []);
         }
         setCloudSyncStatus("connected");
       },
@@ -149,14 +189,16 @@ export function App() {
       "rooms",
       (cloudRooms) => {
         if (cloudRooms.length > 0) {
-          setRooms(cloudRooms);
-          saveToStorage("rooms", cloudRooms);
+          const sampleRms = cloudRooms.filter(isSampleRm);
+          if (sampleRms.length > 0) {
+            sampleRms.forEach((sr) => deleteFromCloud("rooms", sr.id));
+          }
+          const userRooms = cloudRooms.filter((r) => !isSampleRm(r));
+          setRooms(userRooms);
+          saveToStorage("rooms", userRooms);
         } else {
-          const initialData = loadFromStorage("rooms", INITIAL_ROOMS);
-          const dataToSeed = initialData.length > 0 ? initialData : INITIAL_ROOMS;
-          batchSaveToCloud("rooms", dataToSeed);
-          setRooms(dataToSeed);
-          saveToStorage("rooms", dataToSeed);
+          setRooms([]);
+          saveToStorage("rooms", []);
         }
       }
     );
@@ -166,14 +208,16 @@ export function App() {
       "tenants",
       (cloudTenants) => {
         if (cloudTenants.length > 0) {
-          setTenants(cloudTenants);
-          saveToStorage("tenants", cloudTenants);
+          const sampleTens = cloudTenants.filter(isSampleTen);
+          if (sampleTens.length > 0) {
+            sampleTens.forEach((st) => deleteFromCloud("tenants", st.id));
+          }
+          const userTenants = cloudTenants.filter((t) => !isSampleTen(t));
+          setTenants(userTenants);
+          saveToStorage("tenants", userTenants);
         } else {
-          const initialData = loadFromStorage("tenants", INITIAL_TENANTS);
-          const dataToSeed = initialData.length > 0 ? initialData : INITIAL_TENANTS;
-          batchSaveToCloud("tenants", dataToSeed);
-          setTenants(dataToSeed);
-          saveToStorage("tenants", dataToSeed);
+          setTenants([]);
+          saveToStorage("tenants", []);
         }
       }
     );
@@ -183,14 +227,16 @@ export function App() {
       "payments",
       (cloudPayments) => {
         if (cloudPayments.length > 0) {
-          setPayments(cloudPayments);
-          saveToStorage("payments", cloudPayments);
+          const samplePays = cloudPayments.filter(isSamplePay);
+          if (samplePays.length > 0) {
+            samplePays.forEach((sp) => deleteFromCloud("payments", sp.id));
+          }
+          const userPayments = cloudPayments.filter((p) => !isSamplePay(p));
+          setPayments(userPayments);
+          saveToStorage("payments", userPayments);
         } else {
-          const initialData = loadFromStorage("payments", INITIAL_PAYMENTS);
-          const dataToSeed = initialData.length > 0 ? initialData : INITIAL_PAYMENTS;
-          batchSaveToCloud("payments", dataToSeed);
-          setPayments(dataToSeed);
-          saveToStorage("payments", dataToSeed);
+          setPayments([]);
+          saveToStorage("payments", []);
         }
       }
     );
@@ -200,14 +246,16 @@ export function App() {
       "maintenance",
       (cloudTickets) => {
         if (cloudTickets.length > 0) {
-          setMaintenanceTickets(cloudTickets);
-          saveToStorage("maintenance", cloudTickets);
+          const sampleMnts = cloudTickets.filter(isSampleMaint);
+          if (sampleMnts.length > 0) {
+            sampleMnts.forEach((sm) => deleteFromCloud("maintenance", sm.id));
+          }
+          const userTickets = cloudTickets.filter((m) => !isSampleMaint(m));
+          setMaintenanceTickets(userTickets);
+          saveToStorage("maintenance", userTickets);
         } else {
-          const initialData = loadFromStorage("maintenance", INITIAL_MAINTENANCE_TICKETS);
-          const dataToSeed = initialData.length > 0 ? initialData : INITIAL_MAINTENANCE_TICKETS;
-          batchSaveToCloud("maintenance", dataToSeed);
-          setMaintenanceTickets(dataToSeed);
-          saveToStorage("maintenance", dataToSeed);
+          setMaintenanceTickets([]);
+          saveToStorage("maintenance", []);
         }
       }
     );
@@ -217,14 +265,16 @@ export function App() {
       "contracts",
       (cloudContracts) => {
         if (cloudContracts.length > 0) {
-          setContracts(cloudContracts);
-          saveToStorage("contracts", cloudContracts);
+          const sampleCnts = cloudContracts.filter(isSampleCnt);
+          if (sampleCnts.length > 0) {
+            sampleCnts.forEach((sc) => deleteFromCloud("contracts", sc.id));
+          }
+          const userContracts = cloudContracts.filter((c) => !isSampleCnt(c));
+          setContracts(userContracts);
+          saveToStorage("contracts", userContracts);
         } else {
-          const initialData = loadFromStorage("contracts", INITIAL_CONTRACTS);
-          const dataToSeed = initialData.length > 0 ? initialData : INITIAL_CONTRACTS;
-          batchSaveToCloud("contracts", dataToSeed);
-          setContracts(dataToSeed);
-          saveToStorage("contracts", dataToSeed);
+          setContracts([]);
+          saveToStorage("contracts", []);
         }
       }
     );
@@ -254,11 +304,8 @@ export function App() {
           setNotifications(cloudNotifs);
           saveToStorage("notifications", cloudNotifs);
         } else {
-          const initialData = loadFromStorage("notifications", INITIAL_NOTIFICATIONS);
-          const dataToSeed = initialData.length > 0 ? initialData : INITIAL_NOTIFICATIONS;
-          batchSaveToCloud("notifications", dataToSeed);
-          setNotifications(dataToSeed);
-          saveToStorage("notifications", dataToSeed);
+          setNotifications([]);
+          saveToStorage("notifications", []);
         }
       }
     );
@@ -324,6 +371,16 @@ export function App() {
       saveToStorage("properties", updatedProperties);
     }
   }, [rooms]);
+
+  // Ensure selectedPropertyId resets if currently selected property was deleted or is not found
+  useEffect(() => {
+    if (selectedPropertyId !== "all" && properties.length > 0) {
+      const exists = properties.some((p) => p.id === selectedPropertyId);
+      if (!exists) {
+        setSelectedPropertyId("all");
+      }
+    }
+  }, [properties, selectedPropertyId]);
 
   // Export Full Backup JSON
   const handleExportBackup = () => {

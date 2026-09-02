@@ -59,16 +59,18 @@ export const TenantView: React.FC<TenantViewProps> = ({
 
   // Form states for adding tenant
   const [newName, setNewName] = React.useState("");
-  const [newPropId, setNewPropId] = React.useState(properties[0]?.id || "prop-1");
-  const [newRoomNumber, setNewRoomNumber] = React.useState("A-102");
-  const [newPhone, setNewPhone] = React.useState("+62 812-9988-7766");
+  const [newPropId, setNewPropId] = React.useState(properties[0]?.id || "");
+  const [newRoomNumber, setNewRoomNumber] = React.useState("");
+  const [newPhone, setNewPhone] = React.useState("");
   const [newEmail, setNewEmail] = React.useState("");
-  const [newIdCard, setNewIdCard] = React.useState("3174091208950009");
-  const [newMonthlyPrice, setNewMonthlyPrice] = React.useState(2500000);
-  const [newDeposit, setNewDeposit] = React.useState(2500000);
-  const [newOccupation, setNewOccupation] = React.useState("Karyawan Swasta");
+  const [newIdCard, setNewIdCard] = React.useState("");
+  const [newMonthlyPrice, setNewMonthlyPrice] = React.useState(0);
+  const [newDeposit, setNewDeposit] = React.useState(0);
+  const [newOccupation, setNewOccupation] = React.useState("");
   const [newCheckInDate, setNewCheckInDate] = React.useState(new Date().toISOString().split("T")[0]);
-  const [newContractEndDate, setNewContractEndDate] = React.useState("2027-08-31");
+  const [newContractEndDate, setNewContractEndDate] = React.useState(
+    new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+  );
 
   // Move room states
   const [targetRoomNumber, setTargetRoomNumber] = React.useState("");
@@ -240,7 +242,7 @@ export const TenantView: React.FC<TenantViewProps> = ({
 
         <button
           onClick={() => {
-            handlePropSelectionForAdd(properties[0]?.id || "prop-1");
+            handlePropSelectionForAdd(properties[0]?.id || "");
             setIsAddModalOpen(true);
           }}
           className="px-4 py-2.5 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold text-xs shadow-md transition flex items-center gap-2 self-start sm:self-auto cursor-pointer active:scale-95"

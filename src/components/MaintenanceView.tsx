@@ -45,14 +45,14 @@ export const MaintenanceView: React.FC<MaintenanceViewProps> = ({
   const [selectedTicketDetail, setSelectedTicketDetail] = React.useState<MaintenanceTicket | null>(null);
 
   // New ticket state
-  const [newPropId, setNewPropId] = React.useState(properties[0]?.id || "prop-1");
-  const [newRoomNumber, setNewRoomNumber] = React.useState("A-103");
+  const [newPropId, setNewPropId] = React.useState(properties[0]?.id || "");
+  const [newRoomNumber, setNewRoomNumber] = React.useState("");
   const [newCategory, setNewCategory] = React.useState<MaintenanceCategory>("AC");
-  const [newPriority, setNewPriority] = React.useState<MaintenancePriority>("High");
+  const [newPriority, setNewPriority] = React.useState<MaintenancePriority>("Normal");
   const [newDesc, setNewDesc] = React.useState("");
-  const [newTenantName, setNewTenantName] = React.useState("Penyewa Kamar");
-  const [newTechnician, setNewTechnician] = React.useState("Pak Agus (Teknisi AC)");
-  const [newCost, setNewCost] = React.useState(150000);
+  const [newTenantName, setNewTenantName] = React.useState("");
+  const [newTechnician, setNewTechnician] = React.useState("");
+  const [newCost, setNewCost] = React.useState(0);
   const [newEstDate, setNewEstDate] = React.useState(new Date().toISOString().split("T")[0]);
 
   const filteredTickets = tickets.filter((t) => {

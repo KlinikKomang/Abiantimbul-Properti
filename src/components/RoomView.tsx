@@ -88,12 +88,12 @@ export const RoomView: React.FC<RoomViewProps> = ({
   };
 
   // New room state
-  const [newPropId, setNewPropId] = React.useState(properties[0]?.id || "prop-1");
-  const [newRoomNumber, setNewRoomNumber] = React.useState("A-205");
-  const [newFloor, setNewFloor] = React.useState(2);
+  const [newPropId, setNewPropId] = React.useState(properties[0]?.id || "");
+  const [newRoomNumber, setNewRoomNumber] = React.useState("");
+  const [newFloor, setNewFloor] = React.useState(1);
   const [newType, setNewType] = React.useState<string>("Standard");
   const [newStatus, setNewStatus] = React.useState<RoomStatus>("available");
-  const [newPrice, setNewPrice] = React.useState(2500000);
+  const [newPrice, setNewPrice] = React.useState(0);
   const [newSize, setNewSize] = React.useState("4 x 4 m");
 
   // Keep property filter in sync if changed from top header
@@ -316,7 +316,7 @@ export const RoomView: React.FC<RoomViewProps> = ({
 
         <button
           onClick={() => {
-            handleAddPropSelectChange(properties[0]?.id || "prop-1");
+            handleAddPropSelectChange(properties[0]?.id || "");
             setIsAddModalOpen(true);
           }}
           className="px-4 py-2.5 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold text-xs shadow-md transition flex items-center gap-2 self-start sm:self-auto cursor-pointer"
