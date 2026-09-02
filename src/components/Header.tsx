@@ -17,13 +17,14 @@ import {
   CheckCircle2,
   RefreshCw
 } from "lucide-react";
-import { UserProfile, Property, AppNotification, UserRole } from "../types";
+import { UserProfile, Property, AppNotification, UserRole, Room, PropertyCategory } from "../types";
 import { AVAILABLE_ROLES } from "../data/mockData";
 
 interface HeaderProps {
   user: UserProfile;
   setUserRole: (role: UserRole) => void;
   properties: Property[];
+  rooms?: Room[];
   selectedPropertyId: string;
   setSelectedPropertyId: (id: string) => void;
   notifications: AppNotification[];
@@ -40,6 +41,7 @@ export const Header: React.FC<HeaderProps> = ({
   user,
   setUserRole,
   properties,
+  rooms = [],
   selectedPropertyId,
   setSelectedPropertyId,
   notifications,
@@ -56,7 +58,27 @@ export const Header: React.FC<HeaderProps> = ({
 
   const unreadCount = notifications.filter((n) => !n.read).length;
   const currentProperty = properties.find((p) => p.id === selectedPropertyId);
-  const totalRoomsCount = properties.reduce((acc, p) => acc + (p.totalRooms || 0), 0);
+
+  const getCategoryUnitTerm = (cat?: PropertyCategory) => {
+    switch (cat) {
+      case "rumah":
+        return "unit";
+      case "parkir":
+        return "slot";
+      case "ruko":
+        return "ruko";
+      case "tanah":
+        return "kavling";
+      case "kost":
+      default:
+        return "kamar";
+    }
+  };
+
+  const totalUnitsCount =
+    rooms && rooms.length > 0
+      ? rooms.length
+      : properties.reduce((acc, p) => acc + (p.totalRooms || 0), 0);
 
   return (
     <header className="sticky top-0 z-30 bg-white border-b border-gray-200 px-4 lg:px-8 py-3 transition-all shadow-xs">
@@ -84,57 +106,67 @@ export const Header: React.FC<HeaderProps> = ({
 
           <div className="h-6 w-px bg-gray-200 hidden md:block mx-1" />
 
-          {/* Multi-Property Switcher */}
+            {/* Multi-Property Switcher */}
           <div className="relative">
             <button
               onClick={() => setPropertyDropdownOpen(!propertyDropdownOpen)}
               className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 hover:bg-gray-100 border border-gray-200 rounded-lg text-xs font-semibold text-gray-700 transition shadow-xs cursor-pointer"
-              title="Pilih Properti Kost"
+              title="Pilih Unit / Portofolio Properti"
             >
               <Home className="w-3.5 h-3.5 text-[#7b1113]" />
               <span className="max-w-[130px] sm:max-w-[180px] truncate">
-                {selectedPropertyId === "all" ? `🏢 Semua Properti (${properties.length} Kost)` : currentProperty?.name || "Pilih Properti"}
+                {selectedPropertyId === "all" ? `🏢 Semua Properti (${properties.length} Properti)` : currentProperty?.name || "Pilih Properti"}
               </span>
               <ChevronDown className="w-3.5 h-3.5 text-gray-400" />
             </button>
 
             {propertyDropdownOpen && (
-              <div className="absolute left-0 mt-1.5 w-64 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="px-3 py-1.5 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider">
-                  Pilih Unit Properti
+              <div className="absolute left-0 mt-1.5 w-72 bg-white rounded-xl shadow-xl border border-gray-100 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="px-3 py-1.5 border-b border-gray-100 text-[11px] font-bold text-gray-400 uppercase tracking-wider flex items-center justify-between">
+                  <span>Pilih Unit Properti</span>
+                  <span className="text-[10px] text-gray-500 font-normal">{properties.length} Terdaftar</span>
                 </div>
                 <button
                   onClick={() => {
                     setSelectedPropertyId("all");
                     setPropertyDropdownOpen(false);
                   }}
-                  className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition ${
+                  className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition cursor-pointer ${
                     selectedPropertyId === "all" ? "bg-rose-50 text-[#7b1113] font-bold" : "text-gray-700 hover:bg-gray-50"
                   }`}
                 >
                   <span className="flex items-center gap-2">
                     <span className="w-2 h-2 rounded-full bg-[#7b1113]" />
-                    Semua Properti ({properties.length} Kost)
+                    Semua Properti ({properties.length} Properti)
                   </span>
-                  <span className="text-[10px] text-gray-400 font-normal">{totalRoomsCount} Kamar</span>
+                  <span className="text-[10px] text-gray-500 font-semibold px-1.5 py-0.5 rounded bg-gray-100">{totalUnitsCount} Total Unit</span>
                 </button>
-                {properties.map((p) => (
-                  <button
-                    key={p.id}
-                    onClick={() => {
-                      setSelectedPropertyId(p.id);
-                      setPropertyDropdownOpen(false);
-                    }}
-                    className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition ${
-                      selectedPropertyId === p.id ? "bg-rose-50 text-[#7b1113] font-bold" : "text-gray-700 hover:bg-gray-50"
-                    }`}
-                  >
-                    <span className="truncate pr-2">{p.name}</span>
-                    <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-600 shrink-0">
-                      {p.occupiedRooms}/{p.totalRooms} ktr
-                    </span>
-                  </button>
-                ))}
+                {properties.map((p) => {
+                  const propRooms = rooms ? rooms.filter((r) => r.propertyId === p.id) : [];
+                  const totalUnits = propRooms.length > 0 ? propRooms.length : (p.totalRooms || 0);
+                  const occupiedUnits = propRooms.length > 0
+                    ? propRooms.filter((r) => r.status === "occupied").length
+                    : (p.occupiedRooms || 0);
+                  const unitTerm = getCategoryUnitTerm(p.category);
+
+                  return (
+                    <button
+                      key={p.id}
+                      onClick={() => {
+                        setSelectedPropertyId(p.id);
+                        setPropertyDropdownOpen(false);
+                      }}
+                      className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between transition cursor-pointer ${
+                        selectedPropertyId === p.id ? "bg-rose-50 text-[#7b1113] font-bold" : "text-gray-700 hover:bg-gray-50"
+                      }`}
+                    >
+                      <span className="truncate pr-2 font-medium">{p.name}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-100 text-gray-700 font-mono font-semibold shrink-0">
+                        {occupiedUnits}/{totalUnits} {unitTerm}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>

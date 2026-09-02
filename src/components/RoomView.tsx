@@ -28,7 +28,8 @@ import {
   ArrowUpAZ,
   ArrowDownAZ,
   ArrowUp10,
-  ArrowDown10
+  ArrowDown10,
+  AlertTriangle,
 } from "lucide-react";
 import { Room, RoomStatus, RoomType, Property, Tenant, PropertyCategory } from "../types";
 import { formatRupiah } from "../data/mockData";
@@ -39,19 +40,23 @@ export type SortDirection = "asc" | "desc";
 interface RoomViewProps {
   rooms: Room[];
   properties: Property[];
-  tenants: Tenant[];
+  tenants?: Tenant[];
   selectedPropertyId: string;
   onUpdateRoom: (room: Room) => void;
   onAddRoom: (room: Room) => void;
+  onDeleteRoom?: (roomId: string) => void;
+  onSelectTenant?: (tenantId: string) => void;
 }
 
 export const RoomView: React.FC<RoomViewProps> = ({
   rooms,
   properties,
-  tenants,
+  tenants = [],
   selectedPropertyId,
   onUpdateRoom,
   onAddRoom,
+  onDeleteRoom,
+  onSelectTenant,
 }) => {
   const [viewMode, setViewMode] = React.useState<"table" | "grid">("table");
   const [searchQuery, setSearchQuery] = React.useState("");
@@ -67,6 +72,20 @@ export const RoomView: React.FC<RoomViewProps> = ({
   const [selectedRoomForEdit, setSelectedRoomForEdit] = React.useState<Room | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
   const [selectedRoomForDetail, setSelectedRoomForDetail] = React.useState<Room | null>(null);
+  const [roomToDelete, setRoomToDelete] = React.useState<Room | null>(null);
+
+  const handleConfirmDelete = () => {
+    if (roomToDelete && onDeleteRoom) {
+      onDeleteRoom(roomToDelete.id);
+      setRoomToDelete(null);
+      if (selectedRoomForEdit?.id === roomToDelete.id) {
+        setSelectedRoomForEdit(null);
+      }
+      if (selectedRoomForDetail?.id === roomToDelete.id) {
+        setSelectedRoomForDetail(null);
+      }
+    }
+  };
 
   // New room state
   const [newPropId, setNewPropId] = React.useState(properties[0]?.id || "prop-1");
@@ -760,6 +779,16 @@ export const RoomView: React.FC<RoomViewProps> = ({
                             <Edit2 className="w-3.5 h-3.5" />
                             <span className="hidden sm:inline">Edit</span>
                           </button>
+                          {onDeleteRoom && (
+                            <button
+                              onClick={() => setRoomToDelete(room)}
+                              className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 cursor-pointer flex items-center gap-1 font-bold text-[11px] transition"
+                              title="Hapus Unit / Kamar / Slot"
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Hapus</span>
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -839,6 +868,16 @@ export const RoomView: React.FC<RoomViewProps> = ({
                       <Edit2 className="w-3.5 h-3.5" />
                       <span>Edit</span>
                     </button>
+                    {onDeleteRoom && (
+                      <button
+                        onClick={() => setRoomToDelete(room)}
+                        className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 cursor-pointer flex items-center gap-1 font-bold text-[11px] px-2 transition"
+                        title="Hapus Unit"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                        <span>Hapus</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1098,22 +1137,38 @@ export const RoomView: React.FC<RoomViewProps> = ({
                 )}
               </div>
 
-              <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
-                <button
-                  onClick={() => setSelectedRoomForDetail(null)}
-                  className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 cursor-pointer"
-                >
-                  Tutup
-                </button>
-                <button
-                  onClick={() => {
-                    setSelectedRoomForEdit(selectedRoomForDetail);
-                    setSelectedRoomForDetail(null);
-                  }}
-                  className="px-4 py-2 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold cursor-pointer"
-                >
-                  Edit Unit Ini
-                </button>
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                <div>
+                  {onDeleteRoom && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRoomToDelete(selectedRoomForDetail);
+                      }}
+                      className="px-3 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-bold border border-red-200 cursor-pointer flex items-center gap-1.5 text-xs transition"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      <span>Hapus Unit</span>
+                    </button>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setSelectedRoomForDetail(null)}
+                    className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 cursor-pointer"
+                  >
+                    Tutup
+                  </button>
+                  <button
+                    onClick={() => {
+                      setSelectedRoomForEdit(selectedRoomForDetail);
+                      setSelectedRoomForDetail(null);
+                    }}
+                    className="px-4 py-2 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold cursor-pointer"
+                  >
+                    Edit Unit Ini
+                  </button>
+                </div>
               </div>
             </div>
           </div>
@@ -1320,22 +1375,124 @@ export const RoomView: React.FC<RoomViewProps> = ({
                 />
               </div>
 
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
+                <div>
+                  {onDeleteRoom && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setRoomToDelete(selectedRoomForEdit);
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-600 font-bold border border-red-200 cursor-pointer flex items-center gap-1.5 transition text-xs"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                      <span>Hapus Unit</span>
+                    </button>
+                  )}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedRoomForEdit(null)}
+                    className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold shadow-sm cursor-pointer"
+                  >
+                    Simpan Perubahan
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL: KONFIRMASI HAPUS UNIT / KAMAR / SLOT */}
+      {roomToDelete && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-red-100">
+            <div className="flex items-center gap-3 pb-3 border-b border-gray-100">
+              <div className="p-3 bg-red-50 text-red-600 rounded-xl border border-red-200">
+                <Trash2 className="w-6 h-6" />
+              </div>
+              <div>
+                <h3 className="font-black text-base text-gray-900">
+                  Konfirmasi Hapus Unit
+                </h3>
+                <p className="text-xs text-gray-500">
+                  Tindakan ini akan menghapus data unit dari sistem.
+                </p>
+              </div>
+            </div>
+
+            <div className="mt-4 space-y-3 text-xs">
+              <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-500 font-medium">Nomor / Kode Unit:</span>
+                  <span className="font-mono font-black text-[#7b1113] bg-rose-50 px-2 py-0.5 rounded border border-rose-200 text-sm">
+                    {roomToDelete.roomNumber}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Lokasi Properti:</span>
+                  <span className="font-bold text-gray-900">{roomToDelete.propertyName}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Tipe & Spesifikasi:</span>
+                  <span className="font-semibold text-gray-800">{roomToDelete.type} ({roomToDelete.size})</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Tarif Sewa:</span>
+                  <span className="font-black text-[#7b1113]">{formatRupiah(roomToDelete.price)}/bln</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-500">Status Okupansi:</span>
+                  <span className="font-bold text-gray-800">
+                    {roomToDelete.status === "occupied" ? "🟢 Terisi (Occupied)" : roomToDelete.status === "available" ? "⚪ Kosong (Available)" : "🟠 Perbaikan (Maintenance)"}
+                  </span>
+                </div>
+              </div>
+
+              {/* Warning if occupied / has tenant */}
+              {(roomToDelete.status === "occupied" || roomToDelete.tenantName) && (
+                <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-amber-900 space-y-1">
+                  <div className="flex items-center gap-1.5 font-bold text-amber-800">
+                    <AlertTriangle className="w-4 h-4 text-amber-600 flex-shrink-0" />
+                    <span>Perhatian: Unit Sedang Terisi</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-amber-800">
+                    Unit ini sedang terisi oleh penyewa <strong>{roomToDelete.tenantName || "Aktif"}</strong>. Menghapus unit ini akan melepaskan relasi kamar pada penyewa tersebut.
+                  </p>
+                </div>
+              )}
+
+              <p className="text-gray-600 text-[11px] leading-relaxed">
+                Apakah Anda yakin ingin menghapus data unit <strong>{roomToDelete.roomNumber}</strong>? Data yang dihapus akan tersinkronisasi ke Cloud Firebase.
+              </p>
+
               <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setSelectedRoomForEdit(null)}
+                  onClick={() => setRoomToDelete(null)}
                   className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
-                  type="submit"
-                  className="px-4 py-2 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold shadow-sm cursor-pointer"
+                  type="button"
+                  onClick={handleConfirmDelete}
+                  className="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white font-bold shadow-sm cursor-pointer flex items-center gap-1.5"
                 >
-                  Simpan Perubahan
+                  <Trash2 className="w-4 h-4" />
+                  <span>Ya, Hapus Unit</span>
                 </button>
               </div>
-            </form>
+            </div>
           </div>
         </div>
       )}

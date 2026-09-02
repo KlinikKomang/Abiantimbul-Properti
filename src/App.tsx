@@ -282,6 +282,49 @@ export function App() {
     saveToStorage("user", user);
   }, [user]);
 
+  // Keep properties counts (totalRooms, occupiedRooms, availableRooms, occupancyRate) accurately synchronized with actual rooms
+  useEffect(() => {
+    if (properties.length === 0 || rooms.length === 0) return;
+
+    let hasChanges = false;
+    const updatedProperties = properties.map((p) => {
+      const propRooms = rooms.filter((r) => r.propertyId === p.id);
+      if (propRooms.length === 0) return p;
+
+      const total = propRooms.length;
+      const occupied = propRooms.filter((r) => r.status === "occupied").length;
+      const available = propRooms.filter((r) => r.status === "available").length;
+      const maintenance = propRooms.filter((r) => r.status === "maintenance").length;
+      const rate = total > 0 ? Math.round((occupied / total) * 100) : 0;
+
+      if (
+        p.totalRooms !== total ||
+        p.occupiedRooms !== occupied ||
+        p.availableRooms !== available ||
+        p.maintenanceRooms !== maintenance ||
+        p.occupancyRate !== rate
+      ) {
+        hasChanges = true;
+        const updated = {
+          ...p,
+          totalRooms: total,
+          occupiedRooms: occupied,
+          availableRooms: available,
+          maintenanceRooms: maintenance,
+          occupancyRate: rate,
+        };
+        saveToCloud("properties", updated);
+        return updated;
+      }
+      return p;
+    });
+
+    if (hasChanges) {
+      setProperties(updatedProperties);
+      saveToStorage("properties", updatedProperties);
+    }
+  }, [rooms]);
+
   // Export Full Backup JSON
   const handleExportBackup = () => {
     const backupData = {
@@ -843,6 +886,43 @@ export function App() {
     }
   };
 
+  const handleDeleteRoom = async (roomId: string) => {
+    const roomToDelete = rooms.find((r) => r.id === roomId);
+    if (!roomToDelete) return;
+
+    setRooms((prev) => prev.filter((r) => r.id !== roomId));
+    await deleteFromCloud("rooms", roomId);
+
+    // Update property counts
+    setProperties((prev) =>
+      prev.map((p) => {
+        if (p.id === roomToDelete.propertyId) {
+          const updated = {
+            ...p,
+            totalRooms: Math.max(0, p.totalRooms - 1),
+            availableRooms: roomToDelete.status === "available" ? Math.max(0, p.availableRooms - 1) : p.availableRooms,
+            occupiedRooms: roomToDelete.status === "occupied" ? Math.max(0, p.occupiedRooms - 1) : p.occupiedRooms,
+          };
+          saveToCloud("properties", updated);
+          return updated;
+        }
+        return p;
+      })
+    );
+
+    const notif: AppNotification = {
+      id: `notif-${Date.now()}`,
+      title: "Unit / Kamar Dihapus",
+      message: `Unit ${roomToDelete.roomNumber} (${roomToDelete.propertyName}) berhasil dihapus dari Cloud Firebase.`,
+      time: "Baru saja",
+      type: "room",
+      read: false,
+      actionUrl: "rooms",
+    };
+    setNotifications((prev) => [notif, ...prev]);
+    saveToCloud("notifications", notif);
+  };
+
   // Tenant Handlers
   const handleAddTenant = async (newTenant: Tenant) => {
     setTenants((prev) => [newTenant, ...prev]);
@@ -1302,6 +1382,7 @@ export function App() {
         user={user}
         setUserRole={handleSetUserRole}
         properties={properties}
+        rooms={rooms}
         selectedPropertyId={selectedPropertyId}
         setSelectedPropertyId={setSelectedPropertyId}
         notifications={notifications}
@@ -1370,9 +1451,11 @@ export function App() {
               <RoomView
                 rooms={rooms}
                 properties={properties}
+                tenants={tenants}
                 selectedPropertyId={selectedPropertyId}
                 onAddRoom={handleAddRoom}
                 onUpdateRoom={handleUpdateRoom}
+                onDeleteRoom={handleDeleteRoom}
                 onSelectTenant={(tenantId) => {
                   setActiveTab("tenants");
                 }}
