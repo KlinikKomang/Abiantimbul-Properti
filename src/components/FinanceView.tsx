@@ -182,11 +182,11 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
           <div className="flex items-center gap-2">
             <div className="w-3 h-3 rounded-full bg-[#800020]" />
             <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
-              Keuangan & Penagihan Sewa (Billing)
+              Penagihan Sewa & Pengeluaran
             </h1>
           </div>
           <p className="text-xs sm:text-sm text-slate-500 mt-0.5">
-            Monitoring arus kas masuk, tagihan jatuh tempo, riwayat pembayaran, dan penerbitan kwitansi digital.
+            Monitoring arus kas keluar & masuk, tagihan jatuh tempo, riwayat pembayaran, dan kwitansi digital.
           </p>
         </div>
 
