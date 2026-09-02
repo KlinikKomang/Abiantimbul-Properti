@@ -22,7 +22,10 @@ import {
   Car,
   Layers,
   Store,
-  Trees
+  Trees,
+  Trash2,
+  ShieldCheck,
+  Info
 } from "lucide-react";
 import { Tenant, TenantStatus, Property, Room, PropertyCategory } from "../types";
 import { formatRupiah } from "../data/mockData";
@@ -35,6 +38,9 @@ interface TenantViewProps {
   selectedPropertyId: string;
   onAddTenant: (tenant: Tenant) => void;
   onUpdateTenant: (tenant: Tenant) => void;
+  onDeleteTenant?: (tenantId: string) => void;
+  onOpenContract?: (tenantId: string) => void;
+  onOpenPayment?: (tenantId: string) => void;
 }
 
 export const TenantView: React.FC<TenantViewProps> = ({
@@ -44,6 +50,9 @@ export const TenantView: React.FC<TenantViewProps> = ({
   selectedPropertyId,
   onAddTenant,
   onUpdateTenant,
+  onDeleteTenant,
+  onOpenContract,
+  onOpenPayment,
 }) => {
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
@@ -56,6 +65,7 @@ export const TenantView: React.FC<TenantViewProps> = ({
   const [selectedTenantForMove, setSelectedTenantForMove] = React.useState<Tenant | null>(null);
   const [selectedTenantForExtend, setSelectedTenantForExtend] = React.useState<Tenant | null>(null);
   const [selectedTenantDetail, setSelectedTenantDetail] = React.useState<Tenant | null>(null);
+  const [selectedTenantForDelete, setSelectedTenantForDelete] = React.useState<Tenant | null>(null);
 
   // Form states for adding tenant
   const [newName, setNewName] = React.useState("");
@@ -232,7 +242,7 @@ export const TenantView: React.FC<TenantViewProps> = ({
               Daftar Penyewa (Tenants)
             </h1>
             <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-50 text-[#7b1113] border border-rose-200">
-              {tenants.length} Penyewa Aktif
+              {tenants.filter(t => t.paymentStatus !== "checkout").length} Penyewa Aktif
             </span>
           </div>
           <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
@@ -286,7 +296,7 @@ export const TenantView: React.FC<TenantViewProps> = ({
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-emerald-500" />
-              Lunas / Aktif
+              Lunas / Aktif ({tenants.filter((t) => t.paymentStatus === "active").length})
             </button>
             <button
               onClick={() => setStatusFilter("due")}
@@ -297,7 +307,7 @@ export const TenantView: React.FC<TenantViewProps> = ({
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-amber-500" />
-              Jatuh Tempo
+              Jatuh Tempo ({tenants.filter((t) => t.paymentStatus === "due").length})
             </button>
             <button
               onClick={() => setStatusFilter("overdue")}
@@ -308,7 +318,18 @@ export const TenantView: React.FC<TenantViewProps> = ({
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-rose-500" />
-              Menunggak
+              Menunggak ({tenants.filter((t) => t.paymentStatus === "overdue").length})
+            </button>
+            <button
+              onClick={() => setStatusFilter("checkout")}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer ${
+                statusFilter === "checkout"
+                  ? "bg-gray-800 text-white shadow-xs"
+                  : "bg-gray-100 hover:bg-gray-200 text-gray-700 border border-gray-300"
+              }`}
+            >
+              <span className="w-2 h-2 rounded-full bg-gray-400" />
+              Selesai / Check-Out ({tenants.filter((t) => t.paymentStatus === "checkout").length})
             </button>
           </div>
         </div>
@@ -452,6 +473,10 @@ export const TenantView: React.FC<TenantViewProps> = ({
                         <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-800 border border-amber-200 inline-flex items-center gap-1">
                           <Clock className="w-3 h-3 text-amber-600" /> Jatuh Tempo
                         </span>
+                      ) : t.paymentStatus === "checkout" ? (
+                        <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-gray-100 text-gray-700 border border-gray-300 inline-flex items-center gap-1">
+                          <LogOut className="w-3 h-3 text-gray-500" /> Selesai / Check-Out
+                        </span>
                       ) : (
                         <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-800 border border-rose-200 inline-flex items-center gap-1">
                           <AlertTriangle className="w-3 h-3 text-rose-600" /> Menunggak
@@ -519,6 +544,13 @@ export const TenantView: React.FC<TenantViewProps> = ({
                           title="Perpanjang Kontrak"
                         >
                           <FileCheck className="w-3.5 h-3.5" />
+                        </button>
+                        <button
+                          onClick={() => setSelectedTenantForDelete(t)}
+                          className="p-1.5 rounded-lg bg-gray-100 hover:bg-rose-50 text-gray-400 hover:text-rose-700 border border-gray-200 hover:border-rose-200 cursor-pointer transition"
+                          title="Hapus Penyewa (Transaksi Keuangan Tetap Aman)"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
                         </button>
                       </div>
                     </td>
@@ -968,21 +1000,35 @@ export const TenantView: React.FC<TenantViewProps> = ({
                 />
               </div>
 
-              <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-2">
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-between gap-2">
                 <button
                   type="button"
-                  onClick={() => setSelectedTenantForEdit(null)}
-                  className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 cursor-pointer"
+                  onClick={() => {
+                    const t = selectedTenantForEdit;
+                    setSelectedTenantForEdit(null);
+                    setSelectedTenantForDelete(t);
+                  }}
+                  className="px-3 py-2 rounded-xl text-rose-700 hover:bg-rose-50 text-xs font-bold flex items-center gap-1.5 transition cursor-pointer border border-rose-200"
                 >
-                  Batal
+                  <Trash2 className="w-3.5 h-3.5" />
+                  Hapus Penyewa Ini
                 </button>
-                <button
-                  type="submit"
-                  className="px-5 py-2.5 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold shadow-md cursor-pointer flex items-center gap-1.5"
-                >
-                  <CheckCircle2 className="w-4 h-4" />
-                  Simpan Perubahan Data Penyewa
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTenantForEdit(null)}
+                    className="px-4 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 cursor-pointer text-xs"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-5 py-2.5 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold shadow-md cursor-pointer flex items-center gap-1.5 text-xs"
+                  >
+                    <CheckCircle2 className="w-4 h-4" />
+                    Simpan Perubahan
+                  </button>
+                </div>
               </div>
             </form>
           </div>
@@ -1258,6 +1304,72 @@ export const TenantView: React.FC<TenantViewProps> = ({
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL KONFIRMASI HAPUS PENYEWA */}
+      {selectedTenantForDelete && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
+          <div className="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-gray-200">
+            <div className="flex items-center gap-3 text-rose-700 mb-3">
+              <div className="p-3 bg-rose-50 rounded-xl border border-rose-200">
+                <Trash2 className="w-6 h-6 text-[#7b1113]" />
+              </div>
+              <div>
+                <h3 className="font-extrabold text-base text-gray-900">Hapus Data Penyewa?</h3>
+                <p className="text-xs text-gray-500">Konfirmasi penghapusan data penyewa</p>
+              </div>
+            </div>
+
+            <div className="p-3.5 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-700 space-y-2 mb-4">
+              <div>
+                <span className="text-gray-400 block text-[10px]">Nama Penyewa</span>
+                <strong className="text-gray-900 text-sm">{selectedTenantForDelete.name}</strong>
+              </div>
+              <div className="flex justify-between border-t border-gray-200 pt-2 text-[11px]">
+                <span>Unit: <strong className="text-[#7b1113]">{selectedTenantForDelete.roomNumber}</strong></span>
+                <span>Lokasi: <strong className="text-gray-800">{selectedTenantForDelete.propertyName}</strong></span>
+              </div>
+            </div>
+
+            {/* Jaminan Transaksi Keuangan Tetap Aman */}
+            <div className="p-3.5 bg-emerald-50 rounded-xl border border-emerald-200 text-emerald-900 text-xs space-y-1.5 mb-5">
+              <div className="flex items-center gap-1.5 font-bold text-emerald-800 text-xs">
+                <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>Transaksi Keuangan Tetap Tersimpan</span>
+              </div>
+              <p className="text-[11px] text-emerald-800 leading-relaxed">
+                Seluruh <strong>riwayat pembayaran sewa, invoice tagihan, kwitansi, dan pembukuan arus kas</strong> dari penyewa ini <strong>TIDAK AKAN DIHAPUS</strong> dan tetap tercatat rapi di laporan Keuangan.
+              </p>
+              <div className="flex items-center gap-1.5 text-[11px] text-emerald-700 pt-1 border-t border-emerald-200/60">
+                <Info className="w-3.5 h-3.5 shrink-0" />
+                <span>Unit <strong>{selectedTenantForDelete.roomNumber}</strong> akan otomatis menjadi <strong>Tersedia (Available)</strong>.</span>
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-2.5">
+              <button
+                type="button"
+                onClick={() => setSelectedTenantForDelete(null)}
+                className="px-4 py-2.5 rounded-xl border border-gray-300 text-gray-700 font-bold text-xs hover:bg-gray-100 transition cursor-pointer"
+              >
+                Batal
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (onDeleteTenant) {
+                    onDeleteTenant(selectedTenantForDelete.id);
+                  }
+                  setSelectedTenantForDelete(null);
+                }}
+                className="px-4 py-2.5 rounded-xl bg-rose-700 hover:bg-rose-800 text-white font-bold text-xs shadow-md transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <Trash2 className="w-4 h-4" />
+                Ya, Hapus Penyewa
+              </button>
+            </div>
           </div>
         </div>
       )}

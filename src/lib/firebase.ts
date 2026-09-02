@@ -48,9 +48,12 @@ export async function saveToCloud<T extends { id: string }>(
     const docRef = doc(db, collectionName, String(data.id));
     const cleanData = sanitizeDoc(data);
     await setDoc(docRef, cleanData, { merge: true });
-  } catch (error) {
-    console.error(`[Firebase] Error saving to ${collectionName}/${data.id}:`, error);
-    throw error;
+  } catch (error: any) {
+    if (error?.message?.includes("Quota exceeded") || error?.code === "resource-exhausted") {
+      console.warn(`[Firebase] Quota limit reached for ${collectionName}/${data.id}. Saved locally.`);
+    } else {
+      console.warn(`[Firebase] Notice saving to ${collectionName}/${data.id}:`, error?.message || error);
+    }
   }
 }
 
@@ -64,9 +67,12 @@ export async function deleteFromCloud(
   try {
     const docRef = doc(db, collectionName, String(id));
     await deleteDoc(docRef);
-  } catch (error) {
-    console.error(`[Firebase] Error deleting ${collectionName}/${id}:`, error);
-    throw error;
+  } catch (error: any) {
+    if (error?.message?.includes("Quota exceeded") || error?.code === "resource-exhausted") {
+      console.warn(`[Firebase] Quota limit reached for deleting ${collectionName}/${id}.`);
+    } else {
+      console.warn(`[Firebase] Notice deleting ${collectionName}/${id}:`, error?.message || error);
+    }
   }
 }
 
@@ -79,8 +85,6 @@ export async function batchSaveToCloud<T extends { id: string }>(
 ): Promise<void> {
   if (!items || items.length === 0) return;
   try {
-    const batch = writeBatch(db);
-    // Firestore batch limit is 500 operations
     const chunks = [];
     for (let i = 0; i < items.length; i += 400) {
       chunks.push(items.slice(i, i + 400));
@@ -94,8 +98,12 @@ export async function batchSaveToCloud<T extends { id: string }>(
       }
       await currentBatch.commit();
     }
-  } catch (error) {
-    console.error(`[Firebase] Error batch saving to ${collectionName}:`, error);
+  } catch (error: any) {
+    if (error?.message?.includes("Quota exceeded") || error?.code === "resource-exhausted") {
+      console.warn(`[Firebase] Quota limit reached for batch save in ${collectionName}. Data saved locally.`);
+    } else {
+      console.warn(`[Firebase] Notice batch saving to ${collectionName}:`, error?.message || error);
+    }
   }
 }
 
@@ -111,13 +119,17 @@ export async function clearCloudCollection(collectionName: string): Promise<void
       batch.delete(docSnap.ref);
     });
     await batch.commit();
-  } catch (error) {
-    console.error(`[Firebase] Error clearing ${collectionName}:`, error);
+  } catch (error: any) {
+    if (error?.message?.includes("Quota exceeded") || error?.code === "resource-exhausted") {
+      console.warn(`[Firebase] Quota limit reached for clearing ${collectionName}.`);
+    } else {
+      console.warn(`[Firebase] Notice clearing ${collectionName}:`, error?.message || error);
+    }
   }
 }
 
 /**
- * Real-time listener for a Firestore collection with fallback
+ * Real-time listener for a Firestore collection with graceful fallback and quota management
  */
 export function subscribeToCollection<T extends { id: string }>(
   collectionName: string,
@@ -125,18 +137,29 @@ export function subscribeToCollection<T extends { id: string }>(
   onError?: (err: Error) => void
 ) {
   const colRef = collection(db, collectionName);
-  return onSnapshot(
-    colRef,
-    (snapshot) => {
-      const items: T[] = snapshot.docs.map((d) => ({
-        ...d.data(),
-        id: d.id,
-      })) as T[];
-      onData(items);
-    },
-    (err) => {
-      console.error(`[Firebase] Snapshot error in ${collectionName}:`, err);
-      if (onError) onError(err);
-    }
-  );
+  try {
+    return onSnapshot(
+      colRef,
+      (snapshot) => {
+        const items: T[] = snapshot.docs.map((d) => ({
+          ...d.data(),
+          id: d.id,
+        })) as T[];
+        onData(items);
+      },
+      (err) => {
+        const isQuota = err.message?.includes("Quota exceeded") || (err as any)?.code === "resource-exhausted";
+        if (isQuota) {
+          console.warn(`[Firebase] Storage quota reached for ${collectionName}. Falling back seamlessly to local storage cache.`);
+        } else {
+          console.warn(`[Firebase] Subscription notice in ${collectionName}:`, err.message || err);
+        }
+        if (onError) onError(err);
+      }
+    );
+  } catch (e: any) {
+    console.warn(`[Firebase] Unable to attach listener to ${collectionName}:`, e?.message || e);
+    if (onError) onError(e);
+    return () => {};
+  }
 }

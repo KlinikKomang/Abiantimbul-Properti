@@ -166,18 +166,10 @@ export function App() {
     const unsubProperties = subscribeToCollection<Property>(
       "properties",
       (cloudProperties) => {
-        if (cloudProperties.length > 0) {
-          // Purge sample properties from cloud if any exist
-          const sampleProps = cloudProperties.filter(isSampleProp);
-          if (sampleProps.length > 0) {
-            sampleProps.forEach((sp) => deleteFromCloud("properties", sp.id));
-          }
+        if (cloudProperties && cloudProperties.length > 0) {
           const userProps = cloudProperties.filter((p) => !isSampleProp(p));
           setProperties(userProps);
           saveToStorage("properties", userProps);
-        } else {
-          setProperties([]);
-          saveToStorage("properties", []);
         }
         setCloudSyncStatus("connected");
       },
@@ -188,139 +180,102 @@ export function App() {
     const unsubRooms = subscribeToCollection<Room>(
       "rooms",
       (cloudRooms) => {
-        if (cloudRooms.length > 0) {
-          const sampleRms = cloudRooms.filter(isSampleRm);
-          if (sampleRms.length > 0) {
-            sampleRms.forEach((sr) => deleteFromCloud("rooms", sr.id));
-          }
+        if (cloudRooms && cloudRooms.length > 0) {
           const userRooms = cloudRooms.filter((r) => !isSampleRm(r));
           setRooms(userRooms);
           saveToStorage("rooms", userRooms);
-        } else {
-          setRooms([]);
-          saveToStorage("rooms", []);
         }
-      }
+      },
+      () => setCloudSyncStatus("offline")
     );
 
     // 3. Subscribe to Tenants
     const unsubTenants = subscribeToCollection<Tenant>(
       "tenants",
       (cloudTenants) => {
-        if (cloudTenants.length > 0) {
-          const sampleTens = cloudTenants.filter(isSampleTen);
-          if (sampleTens.length > 0) {
-            sampleTens.forEach((st) => deleteFromCloud("tenants", st.id));
-          }
+        if (cloudTenants && cloudTenants.length > 0) {
           const userTenants = cloudTenants.filter((t) => !isSampleTen(t));
           setTenants(userTenants);
           saveToStorage("tenants", userTenants);
-        } else {
-          setTenants([]);
-          saveToStorage("tenants", []);
         }
-      }
+      },
+      () => setCloudSyncStatus("offline")
     );
 
     // 4. Subscribe to Payments
     const unsubPayments = subscribeToCollection<PaymentRecord>(
       "payments",
       (cloudPayments) => {
-        if (cloudPayments.length > 0) {
-          const samplePays = cloudPayments.filter(isSamplePay);
-          if (samplePays.length > 0) {
-            samplePays.forEach((sp) => deleteFromCloud("payments", sp.id));
-          }
+        if (cloudPayments && cloudPayments.length > 0) {
           const userPayments = cloudPayments.filter((p) => !isSamplePay(p));
           setPayments(userPayments);
           saveToStorage("payments", userPayments);
-        } else {
-          setPayments([]);
-          saveToStorage("payments", []);
         }
-      }
+      },
+      () => setCloudSyncStatus("offline")
     );
 
     // 5. Subscribe to Maintenance Tickets
     const unsubMaintenance = subscribeToCollection<MaintenanceTicket>(
       "maintenance",
       (cloudTickets) => {
-        if (cloudTickets.length > 0) {
-          const sampleMnts = cloudTickets.filter(isSampleMaint);
-          if (sampleMnts.length > 0) {
-            sampleMnts.forEach((sm) => deleteFromCloud("maintenance", sm.id));
-          }
+        if (cloudTickets && cloudTickets.length > 0) {
           const userTickets = cloudTickets.filter((m) => !isSampleMaint(m));
           setMaintenanceTickets(userTickets);
           saveToStorage("maintenance", userTickets);
-        } else {
-          setMaintenanceTickets([]);
-          saveToStorage("maintenance", []);
         }
-      }
+      },
+      () => setCloudSyncStatus("offline")
     );
 
     // 6. Subscribe to Contracts
     const unsubContracts = subscribeToCollection<Contract>(
       "contracts",
       (cloudContracts) => {
-        if (cloudContracts.length > 0) {
-          const sampleCnts = cloudContracts.filter(isSampleCnt);
-          if (sampleCnts.length > 0) {
-            sampleCnts.forEach((sc) => deleteFromCloud("contracts", sc.id));
-          }
+        if (cloudContracts && cloudContracts.length > 0) {
           const userContracts = cloudContracts.filter((c) => !isSampleCnt(c));
           setContracts(userContracts);
           saveToStorage("contracts", userContracts);
-        } else {
-          setContracts([]);
-          saveToStorage("contracts", []);
         }
-      }
+      },
+      () => setCloudSyncStatus("offline")
     );
 
     // 7. Subscribe to Accounts
     const unsubAccounts = subscribeToCollection<AuthAccount>(
       "accounts",
       (cloudAccounts) => {
-        if (cloudAccounts.length > 0) {
+        if (cloudAccounts && cloudAccounts.length > 0) {
           setAccounts(cloudAccounts);
           saveToStorage("accounts", cloudAccounts);
-        } else {
-          const initialData = loadFromStorage("accounts", DEMO_ACCOUNTS);
-          const dataToSeed = initialData.length > 0 ? initialData : DEMO_ACCOUNTS;
-          batchSaveToCloud("accounts", dataToSeed);
-          setAccounts(dataToSeed);
-          saveToStorage("accounts", dataToSeed);
         }
-      }
+      },
+      () => setCloudSyncStatus("offline")
     );
 
     // 8. Subscribe to Notifications
     const unsubNotifications = subscribeToCollection<AppNotification>(
       "notifications",
       (cloudNotifs) => {
-        if (cloudNotifs.length > 0) {
+        if (cloudNotifs && cloudNotifs.length > 0) {
           setNotifications(cloudNotifs);
           saveToStorage("notifications", cloudNotifs);
-        } else {
-          setNotifications([]);
-          saveToStorage("notifications", []);
         }
-      }
+      },
+      () => setCloudSyncStatus("offline")
     );
 
     setIsCloudInitialized(true);
 
     return () => {
-      unsubProperties();
-      unsubRooms();
-      unsubTenants();
-      unsubPayments();
-      unsubMaintenance();
-      unsubContracts();
-      unsubAccounts();
-      unsubNotifications();
+      unsubProperties?.();
+      unsubRooms?.();
+      unsubTenants?.();
+      unsubPayments?.();
+      unsubMaintenance?.();
+      unsubContracts?.();
+      unsubAccounts?.();
+      unsubNotifications?.();
     };
   }, []);
 
@@ -1166,6 +1121,81 @@ export function App() {
     );
   };
 
+  const handleDeleteTenant = async (tenantId: string) => {
+    const tenantToDelete = tenants.find((t) => t.id === tenantId);
+    if (!tenantToDelete) return;
+
+    // Remove tenant from state and delete from Cloud Firebase
+    setTenants((prev) => prev.filter((t) => t.id !== tenantId));
+    await deleteFromCloud("tenants", tenantId);
+
+    // Vacate the occupied room
+    setRooms((prev) =>
+      prev.map((r) => {
+        if (
+          r.tenantId === tenantId ||
+          (r.propertyId === tenantToDelete.propertyId && r.roomNumber === tenantToDelete.roomNumber)
+        ) {
+          const vacated: Room = {
+            ...r,
+            status: "available",
+            tenantId: undefined,
+            tenantName: undefined,
+          };
+          saveToCloud("rooms", vacated);
+          return vacated;
+        }
+        return r;
+      })
+    );
+
+    // Update property counters
+    setProperties((prev) =>
+      prev.map((p) => {
+        if (p.id === tenantToDelete.propertyId) {
+          const updated = {
+            ...p,
+            availableRooms: p.availableRooms + 1,
+            occupiedRooms: Math.max(0, p.occupiedRooms - 1),
+          };
+          saveToCloud("properties", updated);
+          return updated;
+        }
+        return p;
+      })
+    );
+
+    // IMPORTANT: Payment transaction records (payments) ARE KEPT 100% INTACT.
+    // Invoices and financial bookkeeping are preserved with historical tenant info.
+
+    // Update contracts to terminated if any
+    setContracts((prev) =>
+      prev.map((c) => {
+        if (c.tenantId === tenantId) {
+          const updated: Contract = {
+            ...c,
+            status: "terminated",
+          };
+          saveToCloud("contracts", updated);
+          return updated;
+        }
+        return c;
+      })
+    );
+
+    const notif: AppNotification = {
+      id: `notif-${Date.now()}`,
+      title: "Penyewa Dihapus",
+      message: `Penyewa ${tenantToDelete.name} (Unit ${tenantToDelete.roomNumber}) berhasil dihapus. Seluruh transaksi pembayaran tetap tersimpan aman di pembukuan.`,
+      time: "Baru saja",
+      type: "tenant",
+      read: false,
+      actionUrl: "tenants",
+    };
+    setNotifications((prev) => [notif, ...prev]);
+    saveToCloud("notifications", notif);
+  };
+
   // Payment Handlers
   const handleRecordPayment = async (newPayment: PaymentRecord) => {
     setPayments((prev) => [newPayment, ...prev]);
@@ -1527,6 +1557,7 @@ export function App() {
                 selectedPropertyId={selectedPropertyId}
                 onAddTenant={handleAddTenant}
                 onUpdateTenant={handleUpdateTenant}
+                onDeleteTenant={handleDeleteTenant}
                 onOpenContract={(tenantId) => {
                   const contract = contracts.find((c) => c.tenantId === tenantId);
                   if (contract) {

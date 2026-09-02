@@ -115,7 +115,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   const outstandingBills = displayPayments
     .filter((p) => p.status === "pending" || p.status === "overdue")
-    .reduce((acc, p) => acc + p.amount, 0) || (displayTenants.filter(t => t.paymentStatus !== "active").length * 2000000);
+    .reduce((acc, p) => acc + p.amount, 0) || (displayTenants.filter(t => t.paymentStatus === "overdue" || t.paymentStatus === "due").length * 2000000);
 
   const overdueCount = displayTenants.filter((t) => t.paymentStatus === "overdue" || t.paymentStatus === "due").length;
 
@@ -130,21 +130,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     return p?.category || "kost";
   };
 
-  // Filtered rooms for the live table
-  const tableRooms = displayRooms.filter((room) => {
-    if (tableStatusFilter !== "all" && room.status !== tableStatusFilter) return false;
-    if (!isFiltered && tablePropertyFilter !== "all" && room.propertyId !== tablePropertyFilter) return false;
-    if (tableCategoryFilter !== "all" && getPropertyCategory(room.propertyId) !== tableCategoryFilter) return false;
-    if (searchTerm.trim()) {
-      const q = searchTerm.toLowerCase();
-      const matchRoom = room.roomNumber.toLowerCase().includes(q);
-      const matchType = room.type.toLowerCase().includes(q);
-      const matchProp = room.propertyName.toLowerCase().includes(q);
-      const matchTenant = room.tenantName ? room.tenantName.toLowerCase().includes(q) : false;
-      return matchRoom || matchType || matchProp || matchTenant;
-    }
-    return true;
-  });
+  // Filtered and sorted rooms (Ascending by Unit / Slot / Kamar) for the live table
+  const tableRooms = displayRooms
+    .filter((room) => {
+      if (tableStatusFilter !== "all" && room.status !== tableStatusFilter) return false;
+      if (!isFiltered && tablePropertyFilter !== "all" && room.propertyId !== tablePropertyFilter) return false;
+      if (tableCategoryFilter !== "all" && getPropertyCategory(room.propertyId) !== tableCategoryFilter) return false;
+      if (searchTerm.trim()) {
+        const q = searchTerm.toLowerCase();
+        const matchRoom = room.roomNumber.toLowerCase().includes(q);
+        const matchType = room.type.toLowerCase().includes(q);
+        const matchProp = room.propertyName.toLowerCase().includes(q);
+        const matchTenant = room.tenantName ? room.tenantName.toLowerCase().includes(q) : false;
+        return matchRoom || matchType || matchProp || matchTenant;
+      }
+      return true;
+    })
+    .sort((a, b) => a.roomNumber.localeCompare(b.roomNumber, undefined, { numeric: true, sensitivity: "base" }));
 
   // Dynamic Monthly Revenue Chart Data
   const monthlyRevenueData = [
@@ -242,13 +244,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             >
               <CreditCard className="w-4 h-4 text-[#7b1113]" />
               Catat Pembayaran
-            </button>
-            <button
-              onClick={onOpenAddRoom}
-              className="px-3.5 py-2 rounded-lg bg-[#ffffff15] hover:bg-[#ffffff25] text-white font-semibold text-xs border border-white/20 transition flex items-center gap-1.5 cursor-pointer active:scale-95"
-            >
-              <Plus className="w-4 h-4 text-[#facc15]" />
-              Tambah Unit / Kamar
             </button>
           </div>
         </div>
