@@ -163,7 +163,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
 
             <div className="space-y-2 mt-4 hidden sm:block">
               <h2 className="text-2xl lg:text-3xl font-black text-white leading-tight">
-                Kelola Kost, Rumah & Lot Parkir Lebih Rapi & Otomatis
+                Manajemen Kost, Rumah, Lot Parkir, Ruko & Tanah
               </h2>
               <p className="text-xs lg:text-sm text-rose-100/90 leading-relaxed">
                 Sistem manajemen sewa properti terintegrasi untuk pencatatan kamar, penagihan WhatsApp otomatis, surat kontrak legal, hingga pembukuan arus kas.
@@ -179,7 +179,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
               </div>
               <div className="text-xs">
                 <strong className="text-white block font-bold">Multi-Kategori Properti</strong>
-                <span className="text-rose-100/80 text-[11px]">Kost sewa, rumah kontrakan, dan lot parkir</span>
+                <span className="text-rose-100/80 text-[11px]">Kost sewa, rumah, lot parkir, ruko, & tanah</span>
               </div>
             </div>
 
@@ -221,7 +221,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
             <div className="flex items-center justify-between pb-4 border-b border-gray-100 mb-4">
               <div>
                 <h3 className="text-xl sm:text-2xl font-black text-gray-900 tracking-tight">
-                  Masuk ke KOSTMANAGER
+                  LOGIN
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
                   Sistem Manajemen Sewa Properti Multi-Kategori
@@ -349,7 +349,7 @@ export const LoginView: React.FC<LoginViewProps> = ({
                     </>
                   ) : (
                     <>
-                      <Lock className="w-4 h-4" /> Masuk ke Aplikasi KOSTMANAGER
+                      <Lock className="w-4 h-4" /> ENTER
                     </>
                   )}
                 </button>
