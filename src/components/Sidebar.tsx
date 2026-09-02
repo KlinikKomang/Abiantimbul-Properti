@@ -44,14 +44,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     roles?: UserRole[];
   }[] = [
     { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "properties", label: "Daftar Properti", icon: Building },
-    { id: "rooms", label: "Manajemen Kamar", icon: DoorOpen },
+    { id: "properties", label: "List Properti", icon: Building },
+    { id: "rooms", label: "Manajemen Kamar/ Parking ", icon: DoorOpen },
     { id: "tenants", label: "Data Penyewa", icon: Users },
     { id: "finance", label: "Keuangan & Billing", icon: WalletCards },
     { id: "reminders", label: "Pengingat Otomatis", icon: MessageSquareShare },
     { id: "maintenance", label: "Maintenance & Tiket", icon: Wrench, badge: "4" },
     { id: "contracts", label: "Manajemen Kontrak", icon: FileText },
-    { id: "analytics", label: "Analitik & Laporan", icon: BarChart3 },
+    { id: "analytics", label: "Analisis & Laporan", icon: BarChart3 },
     { id: "notifications", label: "Notifikasi", icon: Bell, badge: unreadNotifications > 0 ? unreadNotifications : undefined },
     { id: "settings", label: "Pengaturan & Role", icon: Settings },
   ];
