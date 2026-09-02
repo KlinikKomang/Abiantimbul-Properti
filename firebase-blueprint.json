@@ -1,0 +1,131 @@
+{
+  "entities": {
+    "properties": {
+      "title": "Property",
+      "description": "Rental property details (Kost, Rumah, Lot Parkir)",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "type": { "type": "string" },
+        "location": { "type": "string" },
+        "address": { "type": "string" },
+        "city": { "type": "string" },
+        "totalRooms": { "type": "number" },
+        "occupiedRooms": { "type": "number" },
+        "availableRooms": { "type": "number" },
+        "maintenanceRooms": { "type": "number" },
+        "occupancyRate": { "type": "number" },
+        "image": { "type": "string" },
+        "priceRange": { "type": "string" },
+        "facilities": { "type": "array" },
+        "managerName": { "type": "string" },
+        "managerPhone": { "type": "string" },
+        "monthlyRevenue": { "type": "number" }
+      },
+      "required": ["id", "name", "totalRooms"]
+    },
+    "rooms": {
+      "title": "Room",
+      "description": "Room, unit, or parking slot within a property",
+      "properties": {
+        "id": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "propertyName": { "type": "string" },
+        "roomNumber": { "type": "string" },
+        "floor": { "type": "number" },
+        "type": { "type": "string" },
+        "status": { "type": "string" },
+        "price": { "type": "number" },
+        "facilities": { "type": "array" },
+        "size": { "type": "string" }
+      },
+      "required": ["id", "propertyId", "roomNumber", "price", "status"]
+    },
+    "tenants": {
+      "title": "Tenant",
+      "description": "Tenant profile and lease status",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "propertyName": { "type": "string" },
+        "roomNumber": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "checkInDate": { "type": "string" },
+        "contractEndDate": { "type": "string" },
+        "monthlyPrice": { "type": "number" },
+        "paymentStatus": { "type": "string" }
+      },
+      "required": ["id", "name", "propertyId", "roomNumber"]
+    },
+    "payments": {
+      "title": "PaymentRecord",
+      "description": "Payment invoices and transaction history",
+      "properties": {
+        "id": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "tenantName": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "propertyName": { "type": "string" },
+        "roomNumber": { "type": "string" },
+        "amount": { "type": "number" },
+        "dueDate": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "invoiceNumber", "amount", "status"]
+    },
+    "maintenance": {
+      "title": "MaintenanceTicket",
+      "description": "Repair and maintenance requests",
+      "properties": {
+        "id": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "roomNumber": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "priority": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "propertyId", "description", "status"]
+    },
+    "contracts": {
+      "title": "Contract",
+      "description": "Rental lease agreement contracts",
+      "properties": {
+        "id": { "type": "string" },
+        "contractNumber": { "type": "string" },
+        "tenantId": { "type": "string" },
+        "tenantName": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "startDate": { "type": "string" },
+        "endDate": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "contractNumber", "tenantId", "status"]
+    },
+    "notifications": {
+      "title": "Notification",
+      "description": "System and activity notifications",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "message": { "type": "string" },
+        "read": { "type": "boolean" }
+      },
+      "required": ["id", "title", "message"]
+    },
+    "accounts": {
+      "title": "AuthAccount",
+      "description": "User login accounts and profiles",
+      "properties": {
+        "id": { "type": "string" },
+        "email": { "type": "string" },
+        "phone": { "type": "string" }
+      },
+      "required": ["id", "email"]
+    }
+  }
+}
