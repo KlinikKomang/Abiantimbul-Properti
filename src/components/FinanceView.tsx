@@ -23,13 +23,18 @@ import {
   Camera,
   Eye,
   FileCheck,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
-import { PaymentRecord, Property, Tenant, Room, PaymentStatus } from "../types";
+import { PaymentRecord, Property, Tenant, Room, PaymentStatus, ExpenseRecord } from "../types";
 import { formatRupiah } from "../data/mockData";
 import { ProofUploader } from "./ProofUploader";
+import { ExpenseSection } from "./ExpenseSection";
+import { CashFlowSection } from "./CashFlowSection";
 
 interface FinanceViewProps {
   payments: PaymentRecord[];
+  expenses?: ExpenseRecord[];
   properties: Property[];
   tenants: Tenant[];
   rooms?: Room[];
@@ -38,10 +43,14 @@ interface FinanceViewProps {
   onUpdatePayment?: (payment: PaymentRecord) => void;
   onDeletePayment?: (paymentId: string) => void;
   onOpenReceipt: (payment: PaymentRecord) => void;
+  onAddExpense?: (expense: ExpenseRecord) => void;
+  onUpdateExpense?: (expense: ExpenseRecord) => void;
+  onDeleteExpense?: (expenseId: string) => void;
 }
 
 export const FinanceView: React.FC<FinanceViewProps> = ({
   payments,
+  expenses = [],
   properties,
   tenants,
   rooms = [],
@@ -50,7 +59,11 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
   onUpdatePayment,
   onDeletePayment,
   onOpenReceipt,
+  onAddExpense,
+  onUpdateExpense,
+  onDeleteExpense,
 }) => {
+  const [activeSubTab, setActiveSubTab] = React.useState<"income" | "expenses" | "cashflow">("income");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
   const [propertyFilter, setPropertyFilter] = React.useState<string>(selectedPropertyId);
@@ -191,25 +204,72 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto">
-          <button
-            onClick={() => {
-              if (tenants.length > 0) {
-                setPayTenantId(tenants[0].id);
-                setPayAmount(tenants[0].monthlyPrice);
-              }
-              setPayPeriod("Bulanan");
-              setPayNotes("");
-              setPayProofUrl(undefined);
-              setIsRecordModalOpen(true);
-            }}
-            className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#800020] to-[#991b1b] hover:from-[#6b001b] hover:to-[#881337] text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer"
-          >
-            <CreditCard className="w-4 h-4 text-amber-300" />
-            Catat Pembayaran Baru
-          </button>
+          {activeSubTab === "income" && (
+            <button
+              onClick={() => {
+                if (tenants.length > 0) {
+                  setPayTenantId(tenants[0].id);
+                  setPayAmount(tenants[0].monthlyPrice);
+                }
+                setPayPeriod("Bulanan");
+                setPayNotes("");
+                setPayProofUrl(undefined);
+                setIsRecordModalOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#800020] to-[#991b1b] hover:from-[#6b001b] hover:to-[#881337] text-white font-bold text-xs shadow-md transition flex items-center gap-2 cursor-pointer"
+            >
+              <CreditCard className="w-4 h-4 text-amber-300" />
+              Catat Pembayaran Baru
+            </button>
+          )}
         </div>
       </div>
 
+      {/* Sub-Tabs Switcher */}
+      <div className="flex flex-wrap items-center gap-2 p-1.5 bg-slate-100/90 rounded-2xl border border-slate-200/80 w-fit">
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("income")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeSubTab === "income"
+              ? "bg-[#800020] text-white shadow-sm"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+          }`}
+        >
+          <CreditCard className="w-4 h-4" />
+          <span>Pemasukan Sewa ({payments.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("expenses")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeSubTab === "expenses"
+              ? "bg-[#800020] text-white shadow-sm"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+          }`}
+        >
+          <TrendingDown className="w-4 h-4" />
+          <span>Pengeluaran Operasional ({expenses.length})</span>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setActiveSubTab("cashflow")}
+          className={`px-4 py-2 rounded-xl text-xs font-bold transition flex items-center gap-2 cursor-pointer ${
+            activeSubTab === "cashflow"
+              ? "bg-[#800020] text-white shadow-sm"
+              : "text-slate-600 hover:text-slate-900 hover:bg-slate-200/60"
+          }`}
+        >
+          <TrendingUp className="w-4 h-4" />
+          <span>Arus Kas & Laba Rugi (P&L)</span>
+        </button>
+      </div>
+
+      {/* SUBTAB 1: PEMASUKAN SEWA & TAGIHAN */}
+      {activeSubTab === "income" && (
+        <div className="space-y-6">
       {/* 3 Main Billing KPI Cards (Paid, Pending, Overdue) - Dihitung Akurat & Dinamis */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Paid */}
@@ -516,6 +576,32 @@ export const FinanceView: React.FC<FinanceViewProps> = ({
           </tbody>
         </table>
       </div>
+      </div>
+      )}
+
+      {/* SUBTAB 2: PENGELUARAN OPERASIONAL */}
+      {activeSubTab === "expenses" && (
+        <ExpenseSection
+          expenses={expenses}
+          properties={properties}
+          rooms={rooms}
+          selectedPropertyId={propertyFilter}
+          onAddExpense={onAddExpense || (() => {})}
+          onUpdateExpense={onUpdateExpense}
+          onDeleteExpense={onDeleteExpense}
+          totalIncomePaid={totalPaid}
+        />
+      )}
+
+      {/* SUBTAB 3: ARUS KAS & LABA RUGI */}
+      {activeSubTab === "cashflow" && (
+        <CashFlowSection
+          payments={payments}
+          expenses={expenses}
+          properties={properties}
+          selectedPropertyId={propertyFilter}
+        />
+      )}
 
       {/* MODAL: EDIT DATA PEMBAYARAN */}
       {selectedPaymentForEdit && (

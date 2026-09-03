@@ -259,6 +259,37 @@ export interface AIChatMessage {
   suggestedActions?: { label: string; actionTab: string }[];
 }
 
+export type ExpenseCategory =
+  | "electricity"       // Biaya Listrik (Token PLN / Tagihan Listrik)
+  | "water"             // Biaya Air (PDAM / Pompa / Air Bersih)
+  | "security_cleaning" // Biaya Kebersihan & Keamanan (Iuran Sampah, Ronda, Satpam)
+  | "management"        // Biaya Pengelolaan (Gaji Pengelola/Penjaga Kost, Fee Operasional)
+  | "maintenance_repair"// Biaya Perbaikan & Perawatan (Tukang, Cat, AC Servis, Plumbing)
+  | "internet_wifi"     // Biaya Internet & WiFi
+  | "supplies"          // Perlengkapan & Operasional (Pembersih, Bohlam, Galon)
+  | "taxes_permits"     // Pajak & Perizinan (PBB, Retribusi Lingkungan)
+  | "other";            // Biaya Lain-lain
+
+export interface ExpenseRecord {
+  id: string;
+  title: string;              // e.g. "Token Listrik Induk & Kamar A3", "Iuran Kebersihan & Satpam RT 04"
+  category: ExpenseCategory;  // Kategori pengeluaran
+  categoryLabel?: string;     // Label tampilan bahasa Indonesia
+  amount: number;             // Nominal (Rp)
+  date: string;               // Tanggal transaksi (YYYY-MM-DD)
+  propertyId: string;         // ID Properti terkait
+  propertyName: string;       // Nama Properti
+  roomNumber?: string;        // Kamar/Unit spesifik atau "Fasilitas Bersama / Seluruh Properti"
+  paymentMethod?: string;     // Transfer BCA, Mandiri, Tunai, QRIS, dll.
+  recipient?: string;         // Penerima pembayaran (PLN, Pak RT, Petugas, Toko Bangunan)
+  status: "paid" | "pending"; // Status: Lunas / Pending
+  paidDate?: string;          // Tanggal lunas
+  notes?: string;             // Catatan atau rincian pengeluaran
+  proofUrl?: string;          // Bukti foto struk / nota / kwitansi
+  invoiceNumber?: string;     // Nomor bukti / nota transaksi
+  createdAt?: string;
+}
+
 export type ActiveTab =
   | "dashboard"
   | "properties"
@@ -272,3 +303,4 @@ export type ActiveTab =
   | "notifications"
   | "analytics"
   | "settings";
+

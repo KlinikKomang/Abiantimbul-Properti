@@ -33,7 +33,7 @@ import {
   Cell,
   Legend,
 } from "recharts";
-import { Property, PaymentRecord, Room, Tenant, MaintenanceTicket, PropertyCategory } from "../types";
+import { Property, PaymentRecord, Room, Tenant, MaintenanceTicket, PropertyCategory, ExpenseRecord } from "../types";
 import { formatRupiah } from "../data/mockData";
 
 interface AnalyticsViewProps {
@@ -42,6 +42,7 @@ interface AnalyticsViewProps {
   tenants?: Tenant[];
   payments: PaymentRecord[];
   maintenanceTickets?: MaintenanceTicket[];
+  expenses?: ExpenseRecord[];
   selectedPropertyId?: string;
 }
 
@@ -71,6 +72,7 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
   tenants = [],
   payments = [],
   maintenanceTickets = [],
+  expenses = [],
   selectedPropertyId = "all",
 }) => {
   const [propertyFilter, setPropertyFilter] = React.useState<string>(selectedPropertyId);
@@ -157,13 +159,22 @@ export const AnalyticsView: React.FC<AnalyticsViewProps> = ({
       .filter((p) => p.status === "paid")
       .reduce((sum, p) => sum + p.amount, 0);
 
-    const monthExpenses = filteredMaintenance
+    const maintenanceCost = filteredMaintenance
       .filter((ticket) => {
         const ticketDate = ticket.completedDate || ticket.reportedDate || ticket.createdAt || "2026-09-01";
         return ticketDate.startsWith(m.key) || (idx === 0 && ticketDate.startsWith("2026-09"));
       })
       .reduce((sum, t) => sum + (t.estimatedCost || 0), 0);
 
+    const operationalCost = (expenses || [])
+      .filter((exp) => {
+        const matchProp = selectedPropertyId === "all" || !selectedPropertyId || exp.propertyId === selectedPropertyId;
+        const matchDate = exp.date.startsWith(m.key) || (idx === 0 && exp.date.startsWith("2026-09"));
+        return matchProp && matchDate;
+      })
+      .reduce((sum, e) => sum + e.amount, 0);
+
+    const monthExpenses = maintenanceCost + operationalCost;
     const monthProfit = Math.max(0, monthRevenue - monthExpenses);
 
     return {

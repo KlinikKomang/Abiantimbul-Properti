@@ -32,7 +32,7 @@ export const ReminderView: React.FC<ReminderViewProps> = ({ tenants, payments })
       channel: "whatsapp",
       enabled: true,
       template:
-        "Halo {nama_penyewa}, kami dari pengelola {nama_kost} ingin menginfokan bahwa tagihan sewa kamar {nomor_kamar} sebesar {nominal} akan jatuh tempo 7 hari lagi pada tanggal {jatuh_tempo}. Pembayaran dapat ditransfer ke rekening BCA 8830-9988-11 a.n GDE ASBAWA PUTRA. Terima kasih!",
+        "Halo {nama_penyewa}, kami dari pengelola {nama_kost} ingin menginfokan bahwa tagihan sewa kamar {nomor_kamar} sebesar {nominal} akan jatuh tempo 7 hari lagi pada tanggal {jatuh_tempo}. Pembayaran dapat ditransfer ke rekening Bank Mandiri 70 000 7757 243 a.n GDE ASBAWA PUTRA. Terima kasih!",
     },
     {
       id: "rule-2",

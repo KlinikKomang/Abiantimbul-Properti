@@ -11,6 +11,8 @@ import {
   AIInsight,
   UserProfile,
   AuthAccount,
+  ExpenseRecord,
+  ExpenseCategory,
 } from "../types";
 
 export const INITIAL_USER: UserProfile = {
@@ -134,6 +136,23 @@ export const INITIAL_PAYMENTS: PaymentRecord[] = [];
 export const INITIAL_MAINTENANCE: MaintenanceTicket[] = [];
 export const INITIAL_MAINTENANCE_TICKETS = INITIAL_MAINTENANCE;
 export const INITIAL_CONTRACTS: Contract[] = [];
+export const INITIAL_EXPENSES: ExpenseRecord[] = [];
+
+export const EXPENSE_CATEGORIES: {
+  key: ExpenseCategory;
+  label: string;
+  desc: string;
+}[] = [
+  { key: "electricity", label: "Biaya Listrik", desc: "Token PLN, meteran kamar, abonemen listrik induk" },
+  { key: "security_cleaning", label: "Kebersihan & Keamanan", desc: "Iuran sampah, keamanan lingkungan, ronda RT/RW, satpam" },
+  { key: "management", label: "Biaya Pengelolaan", desc: "Gaji penjaga kost, admin operasional, fee manajer properti" },
+  { key: "water", label: "Biaya Air", desc: "Tagihan PDAM, isi tangki air bersih, servis pompa air" },
+  { key: "maintenance_repair", label: "Perbaikan & Servis", desc: "Biaya tukang, cat ulang, servis rutin AC, instalasi listrik/plumbing" },
+  { key: "internet_wifi", label: "Internet & WiFi", desc: "Tagihan langganan internet wifi bulanan kost" },
+  { key: "supplies", label: "Perlengkapan Operasional", desc: "Cairan pembersih lantai, sabun, sapu, galon air bersama, lampu bohlam" },
+  { key: "taxes_permits", label: "Pajak & Retribusi", desc: "PBB tahunan, retribusi daerah, izin lingkungan sewa" },
+  { key: "other", label: "Biaya Lain-lain", desc: "Biaya administrasi bank, konsumsi rapat, pengeluaran tak terduga" },
+];
 
 export const INITIAL_REMINDER_SETTINGS: ReminderSetting[] = [
   {

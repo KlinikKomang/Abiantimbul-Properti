@@ -28,6 +28,8 @@ import {
   INITIAL_CONTRACTS,
   INITIAL_NOTIFICATIONS,
   INITIAL_AI_INSIGHTS,
+  INITIAL_EXPENSES,
+  formatRupiah,
   DEMO_ACCOUNTS,
   SAMPLE_PROPERTY_IDS,
   SAMPLE_PROPERTY_NAMES,
@@ -42,6 +44,7 @@ import {
   PaymentRecord,
   MaintenanceTicket,
   Contract,
+  ExpenseRecord,
   AppNotification,
   AIInsight,
   AuthAccount,
@@ -129,6 +132,11 @@ export function App() {
     (c.propertyName && SAMPLE_PROPERTY_NAMES.some((name) => c.propertyName?.toLowerCase().trim() === name.toLowerCase().trim())) ||
     ["cnt-101", "cnt-102", "cnt-201", "cnt-301"].includes(c.id);
 
+  const isSampleExp = (e: ExpenseRecord) =>
+    (e.propertyId && SAMPLE_PROPERTY_IDS.includes(e.propertyId)) ||
+    (e.propertyName && SAMPLE_PROPERTY_NAMES.some((name) => e.propertyName?.toLowerCase().trim() === name.toLowerCase().trim())) ||
+    ["exp-101", "exp-102", "exp-103", "exp-104", "exp-105", "exp-1", "exp-2", "exp-3"].includes(e.id);
+
   // Domain Entities State initialized from persistent storage & synchronized with Firebase Firestore
   const [properties, setProperties] = useState<Property[]>(() =>
     loadFromStorage("properties", INITIAL_PROPERTIES).filter((p: Property) => !isSampleProp(p))
@@ -141,6 +149,9 @@ export function App() {
   );
   const [payments, setPayments] = useState<PaymentRecord[]>(() =>
     loadFromStorage("payments", INITIAL_PAYMENTS).filter((p: PaymentRecord) => !isSamplePay(p))
+  );
+  const [expenses, setExpenses] = useState<ExpenseRecord[]>(() =>
+    loadFromStorage("expenses", INITIAL_EXPENSES).filter((e: ExpenseRecord) => !isSampleExp(e))
   );
   const [maintenanceTickets, setMaintenanceTickets] = useState<MaintenanceTicket[]>(() =>
     loadFromStorage("maintenance", INITIAL_MAINTENANCE_TICKETS).filter((m: MaintenanceTicket) => !isSampleMaint(m))
@@ -241,6 +252,19 @@ export function App() {
       () => setCloudSyncStatus("offline")
     );
 
+    // 6b. Subscribe to Expenses
+    const unsubExpenses = subscribeToCollection<ExpenseRecord>(
+      "expenses",
+      (cloudExpenses) => {
+        if (cloudExpenses && cloudExpenses.length > 0) {
+          const userExpenses = cloudExpenses.filter((e) => !isSampleExp(e));
+          setExpenses(userExpenses);
+          saveToStorage("expenses", userExpenses);
+        }
+      },
+      () => setCloudSyncStatus("offline")
+    );
+
     // 7. Subscribe to Accounts
     const unsubAccounts = subscribeToCollection<AuthAccount>(
       "accounts",
@@ -274,6 +298,7 @@ export function App() {
       unsubPayments?.();
       unsubMaintenance?.();
       unsubContracts?.();
+      unsubExpenses?.();
       unsubAccounts?.();
       unsubNotifications?.();
     };
@@ -701,6 +726,7 @@ export function App() {
     setRooms([]);
     setTenants([]);
     setPayments([]);
+    setExpenses([]);
     setMaintenanceTickets([]);
     setContracts([]);
     setSelectedPropertyId("all");
@@ -709,6 +735,7 @@ export function App() {
     await clearCloudCollection("rooms");
     await clearCloudCollection("tenants");
     await clearCloudCollection("payments");
+    await clearCloudCollection("expenses");
     await clearCloudCollection("maintenance");
     await clearCloudCollection("contracts");
 
@@ -731,6 +758,7 @@ export function App() {
     setRooms(INITIAL_ROOMS);
     setTenants(INITIAL_TENANTS);
     setPayments(INITIAL_PAYMENTS);
+    setExpenses(INITIAL_EXPENSES);
     setMaintenanceTickets(INITIAL_MAINTENANCE_TICKETS);
     setContracts(INITIAL_CONTRACTS);
     setSelectedPropertyId("all");
@@ -739,6 +767,7 @@ export function App() {
     await batchSaveToCloud("rooms", INITIAL_ROOMS);
     await batchSaveToCloud("tenants", INITIAL_TENANTS);
     await batchSaveToCloud("payments", INITIAL_PAYMENTS);
+    await batchSaveToCloud("expenses", INITIAL_EXPENSES);
     await batchSaveToCloud("maintenance", INITIAL_MAINTENANCE_TICKETS);
     await batchSaveToCloud("contracts", INITIAL_CONTRACTS);
 
@@ -1292,6 +1321,64 @@ export function App() {
     saveToCloud("notifications", notif);
   };
 
+  // Expense Handlers (Operational Cost Management)
+  const handleAddExpense = async (newExpense: ExpenseRecord) => {
+    setExpenses((prev) => [newExpense, ...prev]);
+    saveToStorage("expenses", [newExpense, ...expenses]);
+    await saveToCloud("expenses", newExpense);
+
+    const notif: AppNotification = {
+      id: `notif-${Date.now()}`,
+      title: "Pengeluaran Operasional Dicatat",
+      message: `${newExpense.title} (${newExpense.propertyName}) sebesar ${formatRupiah(newExpense.amount)} berhasil dicatat & disinkronkan ke Cloud.`,
+      time: "Baru saja",
+      type: "payment",
+      read: false,
+      actionUrl: "finance",
+    };
+    setNotifications((prev) => [notif, ...prev]);
+    saveToCloud("notifications", notif);
+  };
+
+  const handleUpdateExpense = async (updatedExpense: ExpenseRecord) => {
+    const updatedList = expenses.map((e) => (e.id === updatedExpense.id ? updatedExpense : e));
+    setExpenses(updatedList);
+    saveToStorage("expenses", updatedList);
+    await saveToCloud("expenses", updatedExpense);
+
+    const notif: AppNotification = {
+      id: `notif-${Date.now()}`,
+      title: "Pengeluaran Diperbarui",
+      message: `Pengeluaran ${updatedExpense.title} (${updatedExpense.propertyName}) berhasil diperbarui di Cloud Firebase.`,
+      time: "Baru saja",
+      type: "payment",
+      read: false,
+      actionUrl: "finance",
+    };
+    setNotifications((prev) => [notif, ...prev]);
+    saveToCloud("notifications", notif);
+  };
+
+  const handleDeleteExpense = async (expenseId: string) => {
+    const exp = expenses.find((e) => e.id === expenseId);
+    const filtered = expenses.filter((e) => e.id !== expenseId);
+    setExpenses(filtered);
+    saveToStorage("expenses", filtered);
+    await deleteFromCloud("expenses", expenseId);
+
+    const notif: AppNotification = {
+      id: `notif-${Date.now()}`,
+      title: "Pengeluaran Dihapus",
+      message: `Pengeluaran ${exp?.title || expenseId} berhasil dihapus dari Cloud Firebase.`,
+      time: "Baru saja",
+      type: "payment",
+      read: false,
+      actionUrl: "finance",
+    };
+    setNotifications((prev) => [notif, ...prev]);
+    saveToCloud("notifications", notif);
+  };
+
   // Maintenance Handlers
   const handleAddTicket = async (newTicket: MaintenanceTicket) => {
     setMaintenanceTickets((prev) => [newTicket, ...prev]);
@@ -1575,6 +1662,7 @@ export function App() {
             {activeTab === "finance" && (
               <FinanceView
                 payments={payments}
+                expenses={expenses}
                 tenants={tenants}
                 properties={properties}
                 rooms={rooms}
@@ -1582,7 +1670,10 @@ export function App() {
                 onRecordPayment={handleRecordPayment}
                 onUpdatePayment={handleUpdatePayment}
                 onDeletePayment={handleDeletePayment}
-                onViewReceipt={(p) => setActiveReceiptPayment(p)}
+                onOpenReceipt={(p) => setActiveReceiptPayment(p)}
+                onAddExpense={handleAddExpense}
+                onUpdateExpense={handleUpdateExpense}
+                onDeleteExpense={handleDeleteExpense}
               />
             )}
 
@@ -1635,6 +1726,7 @@ export function App() {
                 rooms={rooms}
                 tenants={tenants}
                 payments={payments}
+                expenses={expenses}
                 maintenanceTickets={maintenanceTickets}
                 selectedPropertyId={selectedPropertyId}
               />

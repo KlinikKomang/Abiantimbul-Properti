@@ -126,6 +126,26 @@
         "phone": { "type": "string" }
       },
       "required": ["id", "email"]
+    },
+    "expenses": {
+      "title": "ExpenseRecord",
+      "description": "Catatan pengeluaran operasional (listrik, air, kebersihan, keamanan, pengelolaan/gaji, perbaikan, dll.)",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "amount": { "type": "number" },
+        "date": { "type": "string" },
+        "propertyId": { "type": "string" },
+        "propertyName": { "type": "string" },
+        "roomNumber": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "recipient": { "type": "string" },
+        "status": { "type": "string" },
+        "notes": { "type": "string" },
+        "proofUrl": { "type": "string" }
+      },
+      "required": ["id", "title", "category", "amount", "date", "propertyId", "status"]
     }
   }
 }
