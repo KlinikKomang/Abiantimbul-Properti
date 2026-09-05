@@ -113,7 +113,7 @@ export const DEMO_ACCOUNTS: AuthAccount[] = [
 export const AVAILABLE_ROLES: { role: UserProfile["role"]; title: string; desc: string }[] = [
   { role: "owner", title: "Pemilik Kost (Pak Gde)", desc: "Akses penuh seluruh properti, laporan keuangan, dan AI" },
   { role: "property_manager", title: "Property Manager", desc: "Mengelola properti tertentu & operasional kamar" },
-  { role: "admin", title: "Admin Kost", desc: "Mengelola data kamar, penyewa, dan operasional harian" },
+  { role: "admin", title: "Admin Kost", desc: "Operasional harian & penyewa (Tanpa hak tambah, edit, delete properti & unit/kamar)" },
   { role: "finance", title: "Finance / Keuangan", desc: "Mengelola penagihan, kwitansi, dan laporan arus kas" },
   { role: "technician", title: "Teknisi / Maintenance", desc: "Melihat & memperbarui status tiket perbaikan" },
 ];

@@ -32,14 +32,16 @@ import {
   FileImage,
   RefreshCw,
   Store,
-  Trees
+  Trees,
+  ShieldAlert,
 } from "lucide-react";
-import { Property, PropertyCategory, Room, ActiveTab } from "../types";
+import { Property, PropertyCategory, Room, ActiveTab, UserRole } from "../types";
 import { formatRupiah } from "../data/mockData";
 
 interface PropertyViewProps {
   properties: Property[];
   rooms: Room[];
+  userRole?: UserRole;
   onSelectProperty: (propertyId: string) => void;
   onAddProperty: (newProp: Property, createStarterRooms?: boolean) => void;
   onUpdateProperty?: (updatedProp: Property) => void;
@@ -253,6 +255,7 @@ const compressImageFile = (file: File, maxWidth = 1200, quality = 0.85): Promise
 export const PropertyView: React.FC<PropertyViewProps> = ({
   properties,
   rooms,
+  userRole,
   onSelectProperty,
   onAddProperty,
   onUpdateProperty,
@@ -261,6 +264,9 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
   onResetMinimalData,
   setActiveTab,
 }) => {
+  // Role Admin cannot add, edit, or delete properties
+  const canManageProperty = userRole !== "admin" && userRole !== "finance" && userRole !== "technician";
+
   const [selectedDetailProperty, setSelectedDetailProperty] = React.useState<Property | null>(null);
   const [isAddModalOpen, setIsAddModalOpen] = React.useState(false);
   const [isClearAllModalOpen, setIsClearAllModalOpen] = React.useState(false);
@@ -368,6 +374,10 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
   };
 
   const handleOpenEditModal = (prop: Property) => {
+    if (!canManageProperty) {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk mengedit data properti.");
+      return;
+    }
     setPropertyToEdit(prop);
     const cat = prop.category || "kost";
     setEditCategory(cat);
@@ -425,6 +435,10 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
 
   const handleSaveEditProperty = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageProperty) {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk mengedit data properti.");
+      return;
+    }
     if (!propertyToEdit || !editName.trim() || !editLocation.trim()) return;
 
     const finalImage = editCustomImageUrl.trim() || editSelectedImage || propertyToEdit.image;
@@ -558,6 +572,10 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
 
   const handleCreateProperty = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageProperty) {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk menambah properti baru.");
+      return;
+    }
     if (!newPropName.trim() || !newPropLocation.trim()) return;
 
     const totalRoomsCount = Math.max(1, Number(newPropTotalRooms));
@@ -603,6 +621,10 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
   };
 
   const handleConfirmDelete = () => {
+    if (!canManageProperty) {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk menghapus properti.");
+      return;
+    }
     if (!propertyToDelete) return;
     if (onDeleteProperty) {
       onDeleteProperty(propertyToDelete.id);
@@ -691,7 +713,14 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {properties.length > 0 && onClearAllData && (
+          {!canManageProperty && (
+            <div className="px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-1.5 shadow-xs">
+              <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+              <span>Akses Admin: Hanya Melihat Data Properti</span>
+            </div>
+          )}
+
+          {canManageProperty && userRole === "owner" && properties.length > 0 && onClearAllData && (
             <button
               onClick={() => setIsClearAllModalOpen(true)}
               className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-red-50 text-red-600 hover:text-red-700 border border-gray-200 hover:border-red-200 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
@@ -702,7 +731,7 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
             </button>
           )}
 
-          {properties.length === 0 && onResetMinimalData && (
+          {canManageProperty && properties.length === 0 && onResetMinimalData && (
             <button
               onClick={onResetMinimalData}
               className="px-3.5 py-2.5 rounded-xl bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 font-bold text-xs transition flex items-center gap-1.5 cursor-pointer shadow-xs active:scale-95"
@@ -712,16 +741,18 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
             </button>
           )}
 
-          <button
-            onClick={() => {
-              handleCategoryChange("kost");
-              setIsAddModalOpen(true);
-            }}
-            className="px-4 py-2.5 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold text-xs shadow-md transition flex items-center gap-2 self-start sm:self-auto cursor-pointer active:scale-95"
-          >
-            <Plus className="w-4 h-4 text-[#facc15]" />
-            Tambah Properti Baru
-          </button>
+          {canManageProperty && (
+            <button
+              onClick={() => {
+                handleCategoryChange("kost");
+                setIsAddModalOpen(true);
+              }}
+              className="px-4 py-2.5 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold text-xs shadow-md transition flex items-center gap-2 self-start sm:self-auto cursor-pointer active:scale-95"
+            >
+              <Plus className="w-4 h-4 text-[#facc15]" />
+              Tambah Properti Baru
+            </button>
+          )}
         </div>
       </div>
 
@@ -835,12 +866,14 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
               ? `Tidak ada hasil untuk pencarian "${searchQuery}".`
               : "Belum ada properti terdaftar pada kategori ini."}
           </p>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="mt-4 px-4 py-2 rounded-xl bg-[#7b1113] text-[#facc15] text-xs font-bold shadow-xs hover:bg-[#630d0f] transition inline-flex items-center gap-1.5 cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" /> Tambah Properti Sekarang
-          </button>
+          {canManageProperty && (
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="mt-4 px-4 py-2 rounded-xl bg-[#7b1113] text-[#facc15] text-xs font-bold shadow-xs hover:bg-[#630d0f] transition inline-flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" /> Tambah Properti Sekarang
+            </button>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -886,28 +919,30 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
                   </div>
 
                   {/* Top Right Quick Actions */}
-                  <div className="absolute top-3 right-3 flex items-center gap-1.5">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleOpenEditModal(prop);
-                      }}
-                      className="p-1.5 rounded-lg bg-black/40 hover:bg-[#7b1113] text-white backdrop-blur-xs transition shadow-sm cursor-pointer"
-                      title="Edit Detail Properti Ini"
-                    >
-                      <Edit3 className="w-3.5 h-3.5 text-white" />
-                    </button>
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setPropertyToDelete(prop);
-                      }}
-                      className="p-1.5 rounded-lg bg-black/40 hover:bg-red-600 text-white backdrop-blur-xs transition shadow-sm cursor-pointer"
-                      title="Hapus Properti Ini"
-                    >
-                      <Trash2 className="w-3.5 h-3.5 text-white" />
-                    </button>
-                  </div>
+                  {canManageProperty && (
+                    <div className="absolute top-3 right-3 flex items-center gap-1.5">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleOpenEditModal(prop);
+                        }}
+                        className="p-1.5 rounded-lg bg-black/40 hover:bg-[#7b1113] text-white backdrop-blur-xs transition shadow-sm cursor-pointer"
+                        title="Edit Detail Properti Ini"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-white" />
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setPropertyToDelete(prop);
+                        }}
+                        className="p-1.5 rounded-lg bg-black/40 hover:bg-red-600 text-white backdrop-blur-xs transition shadow-sm cursor-pointer"
+                        title="Hapus Properti Ini"
+                      >
+                        <Trash2 className="w-3.5 h-3.5 text-white" />
+                      </button>
+                    </div>
+                  )}
 
                   {/* Bottom title on image */}
                   <div className="absolute bottom-3 left-3 right-3 text-white">
@@ -987,13 +1022,15 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
                     >
                       Detail <ChevronRight className="w-3.5 h-3.5 text-[#facc15]" />
                     </button>
-                    <button
-                      onClick={() => handleOpenEditModal(prop)}
-                      className="py-2 px-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-[#7b1113] border border-amber-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                      title="Edit Detail Properti Ini"
-                    >
-                      <Edit3 className="w-3.5 h-3.5 text-[#7b1113]" /> Edit
-                    </button>
+                    {canManageProperty && (
+                      <button
+                        onClick={() => handleOpenEditModal(prop)}
+                        className="py-2 px-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-[#7b1113] border border-amber-200 text-xs font-bold transition flex items-center gap-1 cursor-pointer"
+                        title="Edit Detail Properti Ini"
+                      >
+                        <Edit3 className="w-3.5 h-3.5 text-[#7b1113]" /> Edit
+                      </button>
+                    )}
                     <button
                       onClick={() => {
                         onSelectProperty(prop.id);
@@ -1004,13 +1041,15 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
                     >
                       {catBadge.unitTerm}
                     </button>
-                    <button
-                      onClick={() => setPropertyToDelete(prop)}
-                      className="p-2 rounded-xl bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-600 border border-gray-200 transition cursor-pointer"
-                      title="Hapus Properti"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {canManageProperty && (
+                      <button
+                        onClick={() => setPropertyToDelete(prop)}
+                        className="p-2 rounded-xl bg-gray-50 hover:bg-red-50 text-gray-400 hover:text-red-600 border border-gray-200 transition cursor-pointer"
+                        title="Hapus Properti"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>
@@ -1033,12 +1072,14 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
               <p className="text-xs text-gray-400">Daftar komparasi unit kost, rumah sewa, dan lot parkir</p>
             </div>
           </div>
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="text-xs text-[#7b1113] font-bold hover:underline flex items-center gap-1 cursor-pointer"
-          >
-            <Plus className="w-3.5 h-3.5" /> Tambah Properti
-          </button>
+          {canManageProperty && (
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="text-xs text-[#7b1113] font-bold hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <Plus className="w-3.5 h-3.5" /> Tambah Properti
+            </button>
+          )}
         </div>
 
         <div className="overflow-x-auto">
@@ -1094,13 +1135,17 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
                         >
                           Detail
                         </button>
-                        <span className="text-gray-300">|</span>
-                        <button
-                          onClick={() => handleOpenEditModal(p)}
-                          className="text-xs font-bold text-amber-700 hover:text-amber-900 hover:underline cursor-pointer"
-                        >
-                          Edit
-                        </button>
+                        {canManageProperty && (
+                          <>
+                            <span className="text-gray-300">|</span>
+                            <button
+                              onClick={() => handleOpenEditModal(p)}
+                              className="text-xs font-bold text-amber-700 hover:text-amber-900 hover:underline cursor-pointer"
+                            >
+                              Edit
+                            </button>
+                          </>
+                        )}
                         <span className="text-gray-300">|</span>
                         <button
                           onClick={() => {
@@ -1111,13 +1156,17 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
                         >
                           {badge.unitTerm}
                         </button>
-                        <span className="text-gray-300">|</span>
-                        <button
-                          onClick={() => setPropertyToDelete(p)}
-                          className="text-xs font-bold text-red-600 hover:text-red-800 hover:underline cursor-pointer"
-                        >
-                          Hapus
-                        </button>
+                        {canManageProperty && (
+                          <>
+                            <span className="text-gray-300">|</span>
+                            <button
+                              onClick={() => setPropertyToDelete(p)}
+                              className="text-xs font-bold text-red-600 hover:text-red-800 hover:underline cursor-pointer"
+                            >
+                              Hapus
+                            </button>
+                          </>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -1206,24 +1255,30 @@ export const PropertyView: React.FC<PropertyViewProps> = ({
               </div>
 
               <div className="pt-3 border-t border-gray-100 flex flex-wrap items-center justify-between gap-2">
-                <button
-                  onClick={() => {
-                    setPropertyToDelete(selectedDetailProperty);
-                  }}
-                  className="px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold border border-red-200 flex items-center gap-1.5 cursor-pointer"
-                >
-                  <Trash2 className="w-3.5 h-3.5" /> Hapus Properti Ini
-                </button>
+                <div>
+                  {canManageProperty && (
+                    <button
+                      onClick={() => {
+                        setPropertyToDelete(selectedDetailProperty);
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 font-bold border border-red-200 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" /> Hapus Properti Ini
+                    </button>
+                  )}
+                </div>
 
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => {
-                      handleOpenEditModal(selectedDetailProperty);
-                    }}
-                    className="px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-[#7b1113] font-bold border border-amber-300 flex items-center gap-1.5 cursor-pointer"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" /> Edit Detail
-                  </button>
+                  {canManageProperty && (
+                    <button
+                      onClick={() => {
+                        handleOpenEditModal(selectedDetailProperty);
+                      }}
+                      className="px-3.5 py-2 rounded-xl bg-amber-100 hover:bg-amber-200 text-[#7b1113] font-bold border border-amber-300 flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <Edit3 className="w-3.5 h-3.5" /> Edit Detail
+                    </button>
+                  )}
                   <button
                     onClick={() => setSelectedDetailProperty(null)}
                     className="px-4 py-2 rounded-xl bg-gray-100 text-gray-700 font-semibold hover:bg-gray-200 cursor-pointer"

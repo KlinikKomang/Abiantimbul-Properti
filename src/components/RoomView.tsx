@@ -30,8 +30,9 @@ import {
   ArrowUp10,
   ArrowDown10,
   AlertTriangle,
+  ShieldAlert,
 } from "lucide-react";
-import { Room, RoomStatus, RoomType, Property, Tenant, PropertyCategory } from "../types";
+import { Room, RoomStatus, RoomType, Property, Tenant, PropertyCategory, UserRole } from "../types";
 import { formatRupiah } from "../data/mockData";
 
 export type RoomSortField = "roomNumber" | "propertyName" | "price" | "status" | "floor" | "type";
@@ -41,6 +42,7 @@ interface RoomViewProps {
   rooms: Room[];
   properties: Property[];
   tenants?: Tenant[];
+  userRole?: UserRole;
   selectedPropertyId: string;
   onUpdateRoom: (room: Room) => void;
   onAddRoom: (room: Room) => void;
@@ -52,12 +54,16 @@ export const RoomView: React.FC<RoomViewProps> = ({
   rooms,
   properties,
   tenants = [],
+  userRole,
   selectedPropertyId,
   onUpdateRoom,
   onAddRoom,
   onDeleteRoom,
   onSelectTenant,
 }) => {
+  // Role Admin cannot add, edit, or delete rooms/units
+  const canManageRoom = userRole !== "admin" && userRole !== "finance" && userRole !== "technician";
+
   const [viewMode, setViewMode] = React.useState<"table" | "grid">("table");
   const [searchQuery, setSearchQuery] = React.useState("");
   const [statusFilter, setStatusFilter] = React.useState<string>("all");
@@ -75,6 +81,10 @@ export const RoomView: React.FC<RoomViewProps> = ({
   const [roomToDelete, setRoomToDelete] = React.useState<Room | null>(null);
 
   const handleConfirmDelete = () => {
+    if (!canManageRoom) {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk menghapus unit / kamar / slot.");
+      return;
+    }
     if (roomToDelete && onDeleteRoom) {
       onDeleteRoom(roomToDelete.id);
       setRoomToDelete(null);
@@ -208,6 +218,10 @@ export const RoomView: React.FC<RoomViewProps> = ({
 
   const handleCreateRoom = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageRoom) {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk menambah unit / kamar / slot.");
+      return;
+    }
     const targetProp = properties.find((p) => p.id === newPropId);
     const cat = targetProp?.category || "kost";
 
@@ -242,6 +256,10 @@ export const RoomView: React.FC<RoomViewProps> = ({
 
   const handleSaveEdit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canManageRoom) {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk mengedit unit / kamar / slot.");
+      return;
+    }
     if (selectedRoomForEdit) {
       onUpdateRoom(selectedRoomForEdit);
       setSelectedRoomForEdit(null);
@@ -249,6 +267,10 @@ export const RoomView: React.FC<RoomViewProps> = ({
   };
 
   const handleQuickStatusChange = (room: Room, newStatus: RoomStatus) => {
+    if (!canManageRoom) {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk mengubah data unit / status.");
+      return;
+    }
     const updated = { ...room, status: newStatus };
     if (newStatus === "available") {
       updated.tenantId = undefined;
@@ -314,16 +336,23 @@ export const RoomView: React.FC<RoomViewProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={() => {
-            handleAddPropSelectChange(properties[0]?.id || "");
-            setIsAddModalOpen(true);
-          }}
-          className="px-4 py-2.5 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold text-xs shadow-md transition flex items-center gap-2 self-start sm:self-auto cursor-pointer"
-        >
-          <Plus className="w-4 h-4 text-[#facc15]" />
-          Tambah Unit / Kamar / Slot
-        </button>
+        {canManageRoom ? (
+          <button
+            onClick={() => {
+              handleAddPropSelectChange(properties[0]?.id || "");
+              setIsAddModalOpen(true);
+            }}
+            className="px-4 py-2.5 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold text-xs shadow-md transition flex items-center gap-2 self-start sm:self-auto cursor-pointer"
+          >
+            <Plus className="w-4 h-4 text-[#facc15]" />
+            Tambah Unit / Kamar / Slot
+          </button>
+        ) : (
+          <div className="px-3.5 py-2 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-xs font-bold flex items-center gap-1.5 shadow-xs self-start sm:self-auto">
+            <ShieldAlert className="w-4 h-4 text-amber-600 shrink-0" />
+            <span>Akses Admin: Hanya Melihat Data Unit</span>
+          </div>
+        )}
       </div>
 
       {/* Filter & Search Bar */}
@@ -690,13 +719,15 @@ export const RoomView: React.FC<RoomViewProps> = ({
                           <span className="px-2.5 py-1 rounded-lg bg-gray-100 font-mono text-[#7b1113] border border-gray-200 shadow-2xs font-black">
                             {room.roomNumber}
                           </span>
-                          <button
-                            onClick={() => setSelectedRoomForEdit(room)}
-                            className="p-1 rounded text-gray-400 hover:text-[#7b1113] hover:bg-rose-50 transition cursor-pointer"
-                            title="Edit Kode Unit Ini"
-                          >
-                            <Edit2 className="w-3 h-3" />
-                          </button>
+                          {canManageRoom && (
+                            <button
+                              onClick={() => setSelectedRoomForEdit(room)}
+                              className="p-1 rounded text-gray-400 hover:text-[#7b1113] hover:bg-rose-50 transition cursor-pointer"
+                              title="Edit Kode Unit Ini"
+                            >
+                              <Edit2 className="w-3 h-3" />
+                            </button>
+                          )}
                         </div>
                       </td>
 
@@ -771,15 +802,17 @@ export const RoomView: React.FC<RoomViewProps> = ({
                           >
                             <Sparkles className="w-3.5 h-3.5" />
                           </button>
-                          <button
-                            onClick={() => setSelectedRoomForEdit(room)}
-                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-[#7b1113] border border-rose-200 cursor-pointer flex items-center gap-1 font-bold text-[11px]"
-                            title="Edit Kode & Detail Unit"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                            <span className="hidden sm:inline">Edit</span>
-                          </button>
-                          {onDeleteRoom && (
+                          {canManageRoom && (
+                            <button
+                              onClick={() => setSelectedRoomForEdit(room)}
+                              className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-[#7b1113] border border-rose-200 cursor-pointer flex items-center gap-1 font-bold text-[11px]"
+                              title="Edit Kode & Detail Unit"
+                            >
+                              <Edit2 className="w-3.5 h-3.5" />
+                              <span className="hidden sm:inline">Edit</span>
+                            </button>
+                          )}
+                          {canManageRoom && onDeleteRoom && (
                             <button
                               onClick={() => setRoomToDelete(room)}
                               className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 cursor-pointer flex items-center gap-1 font-bold text-[11px] transition"
@@ -860,15 +893,17 @@ export const RoomView: React.FC<RoomViewProps> = ({
                     >
                       <Sparkles className="w-3.5 h-3.5" />
                     </button>
-                    <button
-                      onClick={() => setSelectedRoomForEdit(room)}
-                      className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-[#7b1113] cursor-pointer flex items-center gap-1 font-bold text-[11px] px-2"
-                      title="Edit Kode & Detail Unit"
-                    >
-                      <Edit2 className="w-3.5 h-3.5" />
-                      <span>Edit</span>
-                    </button>
-                    {onDeleteRoom && (
+                    {canManageRoom && (
+                      <button
+                        onClick={() => setSelectedRoomForEdit(room)}
+                        className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-[#7b1113] cursor-pointer flex items-center gap-1 font-bold text-[11px] px-2"
+                        title="Edit Kode & Detail Unit"
+                      >
+                        <Edit2 className="w-3.5 h-3.5" />
+                        <span>Edit</span>
+                      </button>
+                    )}
+                    {canManageRoom && onDeleteRoom && (
                       <button
                         onClick={() => setRoomToDelete(room)}
                         className="p-1.5 rounded-lg bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 cursor-pointer flex items-center gap-1 font-bold text-[11px] px-2 transition"
@@ -1139,7 +1174,7 @@ export const RoomView: React.FC<RoomViewProps> = ({
 
               <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
                 <div>
-                  {onDeleteRoom && (
+                  {canManageRoom && onDeleteRoom && (
                     <button
                       type="button"
                       onClick={() => {
@@ -1159,15 +1194,17 @@ export const RoomView: React.FC<RoomViewProps> = ({
                   >
                     Tutup
                   </button>
-                  <button
-                    onClick={() => {
-                      setSelectedRoomForEdit(selectedRoomForDetail);
-                      setSelectedRoomForDetail(null);
-                    }}
-                    className="px-4 py-2 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold cursor-pointer"
-                  >
-                    Edit Unit Ini
-                  </button>
+                  {canManageRoom && (
+                    <button
+                      onClick={() => {
+                        setSelectedRoomForEdit(selectedRoomForDetail);
+                        setSelectedRoomForDetail(null);
+                      }}
+                      className="px-4 py-2 rounded-xl bg-[#7b1113] hover:bg-[#630d0f] text-[#facc15] font-bold cursor-pointer"
+                    >
+                      Edit Unit Ini
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1176,7 +1213,7 @@ export const RoomView: React.FC<RoomViewProps> = ({
       )}
 
       {/* MODAL: EDIT UNIT */}
-      {selectedRoomForEdit && (
+      {canManageRoom && selectedRoomForEdit && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4 animate-in fade-in duration-150">
           <div className="bg-white rounded-2xl max-w-lg w-full p-6 shadow-2xl border border-gray-200 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-gray-100">
@@ -1377,7 +1414,7 @@ export const RoomView: React.FC<RoomViewProps> = ({
 
               <div className="pt-3 border-t border-gray-100 flex items-center justify-between">
                 <div>
-                  {onDeleteRoom && (
+                  {canManageRoom && onDeleteRoom && (
                     <button
                       type="button"
                       onClick={() => {

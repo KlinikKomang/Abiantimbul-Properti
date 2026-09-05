@@ -474,6 +474,10 @@ export function App() {
 
   // Property Handlers
   const handleAddProperty = async (newProp: Property, createStarterRooms = true) => {
+    if (user.role === "admin") {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk menambah properti baru.");
+      return;
+    }
     setProperties((prev) => [newProp, ...prev]);
     await saveToCloud("properties", newProp);
 
@@ -607,6 +611,10 @@ export function App() {
   };
 
   const handleDeleteProperty = async (propertyId: string) => {
+    if (user.role === "admin") {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk menghapus properti.");
+      return;
+    }
     const propToDelete = properties.find((p) => p.id === propertyId);
     const propName = propToDelete?.name || "Properti";
 
@@ -645,6 +653,10 @@ export function App() {
   };
 
   const handleUpdateProperty = async (updatedProp: Property) => {
+    if (user.role === "admin") {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk mengedit properti.");
+      return;
+    }
     const oldProp = properties.find((p) => p.id === updatedProp.id);
     const oldName = oldProp?.name;
 
@@ -856,6 +868,10 @@ export function App() {
 
   // Room Handlers
   const handleAddRoom = async (newRoom: Room) => {
+    if (user.role === "admin") {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk menambah unit / kamar / slot.");
+      return;
+    }
     setRooms((prev) => [newRoom, ...prev]);
     await saveToCloud("rooms", newRoom);
 
@@ -876,6 +892,10 @@ export function App() {
   };
 
   const handleUpdateRoom = async (updatedRoom: Room) => {
+    if (user.role === "admin") {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk mengedit unit / kamar / slot.");
+      return;
+    }
     const oldRoom = rooms.find((r) => r.id === updatedRoom.id);
     const oldRoomNumber = oldRoom?.roomNumber;
 
@@ -928,6 +948,10 @@ export function App() {
   };
 
   const handleDeleteRoom = async (roomId: string) => {
+    if (user.role === "admin") {
+      alert("Akses Dibatasi: Role Admin tidak memiliki izin untuk menghapus unit / kamar / slot.");
+      return;
+    }
     const roomToDelete = rooms.find((r) => r.id === roomId);
     if (!roomToDelete) return;
 
@@ -1607,6 +1631,7 @@ export function App() {
                 properties={properties}
                 rooms={rooms}
                 tenants={tenants}
+                userRole={user.role}
                 onAddProperty={handleAddProperty}
                 onUpdateProperty={handleUpdateProperty}
                 onDeleteProperty={handleDeleteProperty}
@@ -1626,6 +1651,7 @@ export function App() {
                 rooms={rooms}
                 properties={properties}
                 tenants={tenants}
+                userRole={user.role}
                 selectedPropertyId={selectedPropertyId}
                 onAddRoom={handleAddRoom}
                 onUpdateRoom={handleUpdateRoom}

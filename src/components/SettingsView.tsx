@@ -339,7 +339,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
                 <h3 className="font-extrabold text-sm text-gray-900 flex items-center gap-2">
-                  <Users className="w-4 h-4 text-[#7b1113]" /> Daftar Akun Login & Kredensial Pengguna
+                  <Users className="w-4 h-4 text-[#7b1113]" /> Daftar Akun Login Pengguna
                 </h3>
                 <p className="text-xs text-gray-500 mt-0.5">
                   Total {accounts.length} akun terdaftar di sistem KOSTMANAGER
