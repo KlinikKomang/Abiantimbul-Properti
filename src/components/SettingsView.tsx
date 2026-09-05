@@ -24,8 +24,6 @@ import {
   UserPlus,
   Edit2,
   KeyRound,
-  Eye,
-  EyeOff,
   Search,
   Building,
   UserCheck,
@@ -89,7 +87,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const [isUserModalOpen, setIsUserModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<AuthAccount | null>(null);
   const [deleteConfirmAccount, setDeleteConfirmAccount] = useState<AuthAccount | null>(null);
-  const [revealedPassId, setRevealedPassId] = useState<string | null>(null);
   const [userSearch, setUserSearch] = useState("");
 
   const isSuperAdmin =
@@ -383,7 +380,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     <th className="pb-3 px-3">User & Nama</th>
                     <th className="pb-3 px-3">Hak Akses (Role)</th>
                     <th className="pb-3 px-3">Email & WhatsApp</th>
-                    <th className="pb-3 px-3">Kata Sandi & PIN</th>
                     <th className="pb-3 px-3">Wilayah Properti</th>
                     <th className="pb-3 px-3 text-right">Aksi Tindakan</th>
                   </tr>
@@ -391,7 +387,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 <tbody className="divide-y divide-gray-100 text-gray-700">
                   {filteredAccounts.map((acc) => {
                     const isAccAdmin = acc.email.toLowerCase() === "gdeasbawaputra@gmail.com";
-                    const isRevealed = revealedPassId === acc.id;
                     const assignedProp = properties.find((p) => p.id === acc.profile.assignedPropertyId);
 
                     return (
@@ -445,26 +440,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                         <td className="py-3 px-3">
                           <div className="font-mono text-gray-800 font-medium">{acc.email}</div>
                           <div className="text-[11px] text-gray-400">{acc.phone || "-"}</div>
-                        </td>
-
-                        {/* Password & PIN */}
-                        <td className="py-3 px-3">
-                          <div className="flex items-center gap-2">
-                            <span className="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded border border-gray-200">
-                              {isRevealed ? acc.passwordHash : "••••••••"}
-                            </span>
-                            <span className="font-mono text-[11px] text-gray-500 bg-gray-50 px-1.5 py-0.5 rounded border border-gray-200">
-                              PIN: {isRevealed ? acc.pin : "••••"}
-                            </span>
-                            <button
-                              type="button"
-                              onClick={() => setRevealedPassId(isRevealed ? null : acc.id)}
-                              className="text-gray-400 hover:text-gray-700 cursor-pointer p-1"
-                              title={isRevealed ? "Sembunyikan" : "Tampilkan Sandi"}
-                            >
-                              {isRevealed ? <EyeOff className="w-3.5 h-3.5" /> : <Eye className="w-3.5 h-3.5" />}
-                            </button>
-                          </div>
                         </td>
 
                         {/* Properti Wilayah */}

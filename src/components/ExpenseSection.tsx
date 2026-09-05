@@ -29,6 +29,14 @@ import {
   AlertCircle,
   Receipt,
   Layers,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
+  RotateCcw,
+  CalendarRange,
+  X,
+  CreditCard,
+  Tag,
 } from "lucide-react";
 import { ExpenseRecord, ExpenseCategory, Property, Room } from "../types";
 import { EXPENSE_CATEGORIES, formatRupiah } from "../data/mockData";
@@ -61,6 +69,11 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [propertyFilter, setPropertyFilter] = useState<string>(selectedPropertyId);
   const [monthFilter, setMonthFilter] = useState<string>("all");
+  const [methodFilter, setMethodFilter] = useState<string>("all");
+  const [startDate, setStartDate] = useState<string>("");
+  const [endDate, setEndDate] = useState<string>("");
+  const [sortBy, setSortBy] = useState<string>("date_desc");
+  const [isAdvancedFilterOpen, setIsAdvancedFilterOpen] = useState(false);
 
   // Modal states
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -73,6 +86,23 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({
     setPropertyFilter(selectedPropertyId);
   }, [selectedPropertyId]);
 
+  // Extract distinct available months & methods from expenses
+  const availableMonths = useMemo(() => {
+    const months = new Set<string>();
+    expenses.forEach((e) => {
+      if (e.date && e.date.length >= 7) months.add(e.date.substring(0, 7));
+    });
+    return Array.from(months).sort().reverse();
+  }, [expenses]);
+
+  const availableMethods = useMemo(() => {
+    const methods = new Set<string>();
+    expenses.forEach((e) => {
+      if (e.paymentMethod) methods.add(e.paymentMethod);
+    });
+    return Array.from(methods);
+  }, [expenses]);
+
   // Filtered by property
   const propertyExpenses = useMemo(() => {
     return expenses.filter((e) => {
@@ -80,24 +110,88 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({
     });
   }, [expenses, propertyFilter]);
 
-  // Fully filtered expenses
+  // Fully filtered & sorted expenses
   const filteredExpenses = useMemo(() => {
-    return propertyExpenses.filter((e) => {
-      const matchQuery =
-        e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (e.recipient && e.recipient.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (e.notes && e.notes.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        (e.invoiceNumber && e.invoiceNumber.toLowerCase().includes(searchQuery.toLowerCase())) ||
-        e.propertyName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (e.roomNumber && e.roomNumber.toLowerCase().includes(searchQuery.toLowerCase()));
+    return propertyExpenses
+      .filter((e) => {
+        const query = searchQuery.toLowerCase().trim();
+        const matchQuery =
+          !query ||
+          e.title.toLowerCase().includes(query) ||
+          (e.recipient && e.recipient.toLowerCase().includes(query)) ||
+          (e.notes && e.notes.toLowerCase().includes(query)) ||
+          (e.invoiceNumber && e.invoiceNumber.toLowerCase().includes(query)) ||
+          e.propertyName.toLowerCase().includes(query) ||
+          (e.roomNumber && e.roomNumber.toLowerCase().includes(query)) ||
+          (e.paymentMethod && e.paymentMethod.toLowerCase().includes(query));
 
-      const matchCategory = categoryFilter === "all" || e.category === categoryFilter;
-      const matchStatus = statusFilter === "all" || e.status === statusFilter;
-      const matchMonth = monthFilter === "all" || e.date.startsWith(monthFilter);
+        const matchCategory = categoryFilter === "all" || e.category === categoryFilter;
+        const matchStatus = statusFilter === "all" || e.status === statusFilter;
+        const matchMonth = monthFilter === "all" || e.date.startsWith(monthFilter);
+        const matchMethod =
+          methodFilter === "all" ||
+          (e.paymentMethod && e.paymentMethod.toLowerCase() === methodFilter.toLowerCase());
 
-      return matchQuery && matchCategory && matchStatus && matchMonth;
-    });
-  }, [propertyExpenses, searchQuery, categoryFilter, statusFilter, monthFilter]);
+        let matchDateRange = true;
+        if (startDate) {
+          matchDateRange = matchDateRange && e.date >= startDate;
+        }
+        if (endDate) {
+          matchDateRange = matchDateRange && e.date <= endDate;
+        }
+
+        return matchQuery && matchCategory && matchStatus && matchMonth && matchMethod && matchDateRange;
+      })
+      .sort((a, b) => {
+        switch (sortBy) {
+          case "date_desc":
+            return b.date.localeCompare(a.date);
+          case "date_asc":
+            return a.date.localeCompare(b.date);
+          case "amount_desc":
+            return b.amount - a.amount;
+          case "amount_asc":
+            return a.amount - b.amount;
+          case "title_asc":
+            return a.title.localeCompare(b.title);
+          default:
+            return b.date.localeCompare(a.date);
+        }
+      });
+  }, [
+    propertyExpenses,
+    searchQuery,
+    categoryFilter,
+    statusFilter,
+    monthFilter,
+    methodFilter,
+    startDate,
+    endDate,
+    sortBy,
+  ]);
+
+  const hasActiveFilters =
+    searchQuery !== "" ||
+    categoryFilter !== "all" ||
+    statusFilter !== "all" ||
+    propertyFilter !== "all" ||
+    monthFilter !== "all" ||
+    methodFilter !== "all" ||
+    startDate !== "" ||
+    endDate !== "" ||
+    sortBy !== "date_desc";
+
+  const handleResetFilters = () => {
+    setSearchQuery("");
+    setCategoryFilter("all");
+    setStatusFilter("all");
+    setPropertyFilter("all");
+    setMonthFilter("all");
+    setMethodFilter("all");
+    setStartDate("");
+    setEndDate("");
+    setSortBy("date_desc");
+  };
 
   // Financial calculations
   const totalExpenses = useMemo(() => {
@@ -392,17 +486,27 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({
       </div>
 
       {/* Search, Filter Controls & Action Buttons */}
-      <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3">
-        <div className="flex flex-col md:flex-row gap-3 items-center justify-between">
-          <div className="relative w-full md:w-80">
+      <div className="p-4 bg-white rounded-2xl border border-slate-200 shadow-xs space-y-3.5">
+        <div className="flex flex-col md:flex-row gap-3 items-stretch md:items-center justify-between">
+          <div className="relative flex-1 min-w-[240px] max-w-md">
             <input
               type="text"
               placeholder="Cari pengeluaran, vendor, no struk, kamar..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-9 pr-3 py-2 text-xs bg-slate-50 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#800020] text-slate-800"
+              className="w-full pl-9 pr-8 py-2 text-xs bg-slate-50 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-[#800020] text-slate-800"
             />
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-2.5 top-2.5 text-slate-400 hover:text-slate-600"
+                title="Hapus pencarian"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
           </div>
 
           <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
@@ -414,7 +518,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({
                   statusFilter === "all" ? "bg-white text-slate-900 shadow-xs" : "text-slate-600 hover:text-slate-900"
                 }`}
               >
-                Semua
+                Semua ({propertyExpenses.length})
               </button>
               <button
                 onClick={() => setStatusFilter("paid")}
@@ -423,7 +527,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({
                 }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
-                Lunas
+                Lunas ({propertyExpenses.filter((e) => e.status === "paid").length})
               </button>
               <button
                 onClick={() => setStatusFilter("pending")}
@@ -432,7 +536,7 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({
                 }`}
               >
                 <span className="w-1.5 h-1.5 rounded-full bg-amber-500" />
-                Pending
+                Pending ({propertyExpenses.filter((e) => e.status === "pending").length})
               </button>
             </div>
 
@@ -469,15 +573,18 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({
           </div>
         </div>
 
-        {/* Secondary Property Filter */}
-        <div className="flex flex-wrap items-center gap-3 pt-2 border-t border-slate-100 text-xs">
-          <div className="flex items-center gap-1.5">
-            <Building2 className="w-3.5 h-3.5 text-slate-400" />
-            <span className="text-slate-400 font-medium">Properti:</span>
+        {/* Secondary Filter Row (Properti, Bulan/Periode, Metode Bayar, Urutkan) */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 pt-2 border-t border-slate-100 text-xs">
+          {/* Properti Filter */}
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+              <Building2 className="w-3 h-3 text-[#800020]" />
+              Properti:
+            </label>
             <select
               value={propertyFilter}
               onChange={(e) => setPropertyFilter(e.target.value)}
-              className="px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-slate-700 font-medium cursor-pointer"
+              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-semibold cursor-pointer focus:ring-2 focus:ring-[#800020] focus:outline-none"
             >
               <option value="all">Semua Properti</option>
               {properties.map((p) => (
@@ -487,7 +594,153 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({
               ))}
             </select>
           </div>
+
+          {/* Bulan / Periode Filter */}
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+              <Calendar className="w-3 h-3 text-[#800020]" />
+              Bulan / Periode:
+            </label>
+            <select
+              value={monthFilter}
+              onChange={(e) => setMonthFilter(e.target.value)}
+              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-semibold cursor-pointer focus:ring-2 focus:ring-[#800020] focus:outline-none"
+            >
+              <option value="all">Semua Bulan</option>
+              {availableMonths.map((m) => {
+                const [y, mm] = m.split("-");
+                const monthName = new Date(Number(y), Number(mm) - 1, 1).toLocaleString("id-ID", {
+                  month: "long",
+                  year: "numeric",
+                });
+                return (
+                  <option key={m} value={m}>
+                    {monthName}
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          {/* Metode Bayar Filter */}
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+              <CreditCard className="w-3 h-3 text-[#800020]" />
+              Metode Bayar:
+            </label>
+            <select
+              value={methodFilter}
+              onChange={(e) => setMethodFilter(e.target.value)}
+              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-semibold cursor-pointer focus:ring-2 focus:ring-[#800020] focus:outline-none"
+            >
+              <option value="all">Semua Metode</option>
+              {availableMethods.map((met) => (
+                <option key={met} value={met}>
+                  {met}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Urutkan Data */}
+          <div>
+            <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1">
+              <ArrowUpDown className="w-3 h-3 text-[#800020]" />
+              Urutkan:
+            </label>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value)}
+              className="w-full px-2.5 py-1.5 bg-slate-50 border border-slate-200 rounded-xl text-slate-700 font-semibold cursor-pointer focus:ring-2 focus:ring-[#800020] focus:outline-none"
+            >
+              <option value="date_desc">Tanggal: Terbaru</option>
+              <option value="date_asc">Tanggal: Terlama</option>
+              <option value="amount_desc">Biaya: Terbesar</option>
+              <option value="amount_asc">Biaya: Terkecil</option>
+              <option value="title_asc">Rincian: A - Z</option>
+            </select>
+          </div>
         </div>
+
+        {/* Date Range & Reset Filter Buttons */}
+        <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setIsAdvancedFilterOpen(!isAdvancedFilterOpen)}
+              className={`px-2.5 py-1 rounded-lg font-semibold flex items-center gap-1.5 transition cursor-pointer ${
+                isAdvancedFilterOpen || startDate || endDate
+                  ? "bg-rose-50 text-[#800020] border border-rose-200"
+                  : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+              }`}
+            >
+              <CalendarRange className="w-3.5 h-3.5" />
+              <span>Filter Rentang Tanggal</span>
+              {(startDate || endDate) && (
+                <span className="w-2 h-2 rounded-full bg-[#800020]" />
+              )}
+            </button>
+
+            {hasActiveFilters && (
+              <button
+                type="button"
+                onClick={handleResetFilters}
+                className="px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-rose-100 text-slate-600 hover:text-rose-700 font-bold flex items-center gap-1 transition cursor-pointer"
+                title="Kembalikan semua filter ke awal"
+              >
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset Filter</span>
+              </button>
+            )}
+          </div>
+
+          {/* Quick Summary of Filtered Result */}
+          <div className="flex items-center gap-3 text-[11px] text-slate-500 font-medium">
+            <span>
+              Menampilkan <strong className="text-slate-900 font-bold">{filteredExpenses.length}</strong> dari {propertyExpenses.length} catatan
+            </span>
+            <span className="text-slate-300">•</span>
+            <span>
+              Total Beban: <strong className="text-rose-700 font-black text-xs">{formatRupiah(filteredExpenses.reduce((sum, e) => sum + e.amount, 0))}</strong>
+            </span>
+          </div>
+        </div>
+
+        {/* Collapsible Date Range Inputs */}
+        {isAdvancedFilterOpen && (
+          <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex flex-wrap items-center gap-3 text-xs animate-in fade-in duration-100">
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500 font-semibold">Dari Tanggal:</span>
+              <input
+                type="date"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-slate-700 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#800020]"
+              />
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-slate-500 font-semibold">Sampai Tanggal:</span>
+              <input
+                type="date"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="px-2 py-1 bg-white border border-slate-200 rounded-lg text-slate-700 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-[#800020]"
+              />
+            </div>
+            {(startDate || endDate) && (
+              <button
+                type="button"
+                onClick={() => {
+                  setStartDate("");
+                  setEndDate("");
+                }}
+                className="text-[11px] text-rose-600 hover:text-rose-800 font-bold underline cursor-pointer"
+              >
+                Hapus Tanggal
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Main Expense Table */}
@@ -504,14 +757,65 @@ export const ExpenseSection: React.FC<ExpenseSectionProps> = ({
 
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider">
-              <th className="pb-3 px-3">Tanggal & No. Bukti</th>
+            <tr className="border-b border-slate-200 text-slate-400 font-bold uppercase tracking-wider text-[11px]">
+              <th
+                className="pb-3 px-3 cursor-pointer select-none hover:text-slate-800 transition"
+                onClick={() => setSortBy(sortBy === "date_desc" ? "date_asc" : "date_desc")}
+                title="Klik untuk mengurutkan tanggal transaksi"
+              >
+                <div className="flex items-center gap-1">
+                  <span>Tanggal & No. Bukti</span>
+                  {sortBy === "date_desc" ? (
+                    <ArrowDown className="w-3 h-3 text-[#800020]" />
+                  ) : sortBy === "date_asc" ? (
+                    <ArrowUp className="w-3 h-3 text-[#800020]" />
+                  ) : (
+                    <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                  )}
+                </div>
+              </th>
               <th className="pb-3 px-3">Kategori</th>
-              <th className="pb-3 px-3">Rincian Pengeluaran</th>
+              <th
+                className="pb-3 px-3 cursor-pointer select-none hover:text-slate-800 transition"
+                onClick={() => setSortBy(sortBy === "title_asc" ? "date_desc" : "title_asc")}
+                title="Klik untuk mengurutkan rincian judul"
+              >
+                <div className="flex items-center gap-1">
+                  <span>Rincian Pengeluaran</span>
+                  <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                </div>
+              </th>
               <th className="pb-3 px-3">Properti / Unit</th>
               <th className="pb-3 px-3">Penerima / Vendor</th>
-              <th className="pb-3 px-3">Nominal (Rp)</th>
-              <th className="pb-3 px-3">Status</th>
+              <th
+                className="pb-3 px-3 cursor-pointer select-none hover:text-slate-800 transition"
+                onClick={() => setSortBy(sortBy === "amount_desc" ? "amount_asc" : "amount_desc")}
+                title="Klik untuk mengurutkan nominal biaya"
+              >
+                <div className="flex items-center gap-1">
+                  <span>Nominal (Rp)</span>
+                  {sortBy === "amount_desc" ? (
+                    <ArrowDown className="w-3 h-3 text-[#800020]" />
+                  ) : sortBy === "amount_asc" ? (
+                    <ArrowUp className="w-3 h-3 text-[#800020]" />
+                  ) : (
+                    <ArrowUpDown className="w-3 h-3 text-slate-400" />
+                  )}
+                </div>
+              </th>
+              <th
+                className="pb-3 px-3 cursor-pointer select-none hover:text-slate-800 transition"
+                onClick={() => {
+                  const nextStatus = statusFilter === "all" ? "paid" : statusFilter === "paid" ? "pending" : "all";
+                  setStatusFilter(nextStatus);
+                }}
+                title="Klik untuk memfilter status lunas / pending"
+              >
+                <div className="flex items-center gap-1">
+                  <span>Status</span>
+                  <Filter className="w-3 h-3 text-slate-400" />
+                </div>
+              </th>
               <th className="pb-3 px-3 text-right">Aksi</th>
             </tr>
           </thead>

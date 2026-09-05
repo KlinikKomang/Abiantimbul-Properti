@@ -18,6 +18,10 @@ import {
   CheckCircle2,
   Clock,
   Camera,
+  Search,
+  Filter,
+  Sparkles,
+  Check,
 } from "lucide-react";
 import { ExpenseRecord, ExpenseCategory, Property, Room } from "../types";
 import { EXPENSE_CATEGORIES, formatRupiah } from "../data/mockData";
@@ -56,6 +60,20 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const [notes, setNotes] = useState<string>(expenseToEdit?.notes || "");
   const [proofUrl, setProofUrl] = useState<string | undefined>(expenseToEdit?.proofUrl);
   const [invoiceNumber, setInvoiceNumber] = useState<string>(expenseToEdit?.invoiceNumber || "");
+
+  // In-form filter states
+  const [categoryFilterQuery, setCategoryFilterQuery] = useState<string>("");
+  const [roomSearchQuery, setRoomSearchQuery] = useState<string>("");
+
+  const QUICK_TEMPLATES = [
+    { label: "⚡ Token PLN", category: "electricity" as ExpenseCategory, title: "Token Listrik Induk & Fasilitas Bersama", amount: 250000, recipient: "PLN Mobile" },
+    { label: "💧 Air PDAM", category: "water" as ExpenseCategory, title: "Tagihan Air PDAM Bulanan", amount: 150000, recipient: "PDAM Tirta Mangutama" },
+    { label: "🛡️ Iuran RT & Sampah", category: "security_cleaning" as ExpenseCategory, title: "Iuran Keamanan & Sampah Warga RT/RW", amount: 100000, recipient: "Pak RT / Bendahara Lingkungan" },
+    { label: "💼 Gaji Penjaga", category: "management" as ExpenseCategory, title: "Gaji Pengelola & Penjaga Kost", amount: 1500000, recipient: "Penjaga Kost" },
+    { label: "🌐 WiFi Kost", category: "internet_wifi" as ExpenseCategory, title: "Langganan WiFi Internet Kost Bulanan", amount: 375000, recipient: "Provider Internet" },
+    { label: "🔧 Servis AC", category: "maintenance_repair" as ExpenseCategory, title: "Cuci & Servis AC Rutin", amount: 150000, recipient: "Teknisi AC" },
+    { label: "🧹 Perlengkapan", category: "supplies" as ExpenseCategory, title: "Pembelian Sabun Pel, Sapu & Bohlam", amount: 85000, recipient: "Toko Perlengkapan" },
+  ];
 
   // Reset or sync form state when editing changes
   useEffect(() => {
@@ -230,13 +248,67 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
         {/* Form Body */}
         <form onSubmit={handleSubmit} className="p-6 overflow-y-auto space-y-4 text-xs">
-          {/* 1. Category Selection Grid */}
+          {/* Quick Preset Templates Filter */}
+          <div className="p-3 bg-rose-50/50 rounded-xl border border-rose-100">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-[11px] font-bold text-[#800020] flex items-center gap-1.5">
+                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+                Pintasan & Template Cepat Pengeluaran
+              </span>
+              <span className="text-[10px] text-slate-400">Klik untuk isi otomatis</span>
+            </div>
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
+              {QUICK_TEMPLATES.map((tmpl, idx) => (
+                <button
+                  key={idx}
+                  type="button"
+                  onClick={() => {
+                    setCategory(tmpl.category);
+                    setTitle(tmpl.title);
+                    setAmount(tmpl.amount);
+                    setRecipient(tmpl.recipient);
+                  }}
+                  className="px-2.5 py-1 rounded-lg bg-white border border-rose-200/80 hover:border-[#800020] hover:bg-rose-100/50 text-slate-800 text-[11px] font-bold shrink-0 transition cursor-pointer flex items-center gap-1 shadow-2xs"
+                >
+                  <span>{tmpl.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* 1. Category Selection Grid with Filter */}
           <div>
-            <label className="block font-bold text-slate-700 mb-1.5">
-              Kategori Pengeluaran <span className="text-rose-500">*</span>
-            </label>
+            <div className="flex items-center justify-between mb-1.5">
+              <label className="font-bold text-slate-700">
+                Kategori Pengeluaran <span className="text-rose-500">*</span>
+              </label>
+              <div className="relative w-44">
+                <input
+                  type="text"
+                  placeholder="Filter kategori..."
+                  value={categoryFilterQuery}
+                  onChange={(e) => setCategoryFilterQuery(e.target.value)}
+                  className="w-full pl-6 pr-5 py-1 text-[11px] bg-slate-50 border border-slate-200 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#800020] text-slate-700 font-medium"
+                />
+                <Search className="w-3 h-3 text-slate-400 absolute left-2 top-2" />
+                {categoryFilterQuery && (
+                  <button
+                    type="button"
+                    onClick={() => setCategoryFilterQuery("")}
+                    className="absolute right-1.5 top-1.5 text-slate-400 hover:text-slate-600"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {EXPENSE_CATEGORIES.map((cat) => {
+              {EXPENSE_CATEGORIES.filter((c) => {
+                if (!categoryFilterQuery.trim()) return true;
+                const q = categoryFilterQuery.toLowerCase();
+                return c.label.toLowerCase().includes(q) || c.desc.toLowerCase().includes(q);
+              }).map((cat) => {
                 const isSelected = category === cat.key;
                 return (
                   <button
@@ -262,7 +334,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
             </div>
           </div>
 
-          {/* 2. Property & Room Allocation */}
+          {/* 2. Property & Room Allocation with Filter */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
             <div>
               <label className="block font-bold text-slate-700 mb-1">
@@ -285,20 +357,40 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
             </div>
 
             <div>
-              <label className="block font-bold text-slate-700 mb-1">
-                Unit / Fasilitas
-              </label>
+              <div className="flex items-center justify-between mb-1">
+                <label className="font-bold text-slate-700">
+                  Unit / Fasilitas
+                </label>
+                {propertyRooms.length > 3 && (
+                  <div className="relative w-28">
+                    <input
+                      type="text"
+                      placeholder="Cari kamar..."
+                      value={roomSearchQuery}
+                      onChange={(e) => setRoomSearchQuery(e.target.value)}
+                      className="w-full pl-5 pr-2 py-0.5 text-[10px] bg-slate-50 border border-slate-200 rounded focus:outline-none focus:ring-1 focus:ring-[#800020]"
+                    />
+                    <Search className="w-2.5 h-2.5 text-slate-400 absolute left-1.5 top-1.5" />
+                  </div>
+                )}
+              </div>
               <select
                 value={roomNumber}
                 onChange={(e) => setRoomNumber(e.target.value)}
                 className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#800020] focus:outline-none font-medium text-slate-800 cursor-pointer"
               >
                 <option value="Seluruh Properti / Umum">Seluruh Properti / Fasilitas Bersama</option>
-                {propertyRooms.map((r) => (
-                  <option key={r.id} value={`Kamar ${r.roomNumber}`}>
-                    Unit/Kamar {r.roomNumber} ({r.type})
-                  </option>
-                ))}
+                {propertyRooms
+                  .filter((r) => {
+                    if (!roomSearchQuery.trim()) return true;
+                    const q = roomSearchQuery.toLowerCase();
+                    return r.roomNumber.toLowerCase().includes(q) || r.type.toLowerCase().includes(q);
+                  })
+                  .map((r) => (
+                    <option key={r.id} value={`Kamar ${r.roomNumber}`}>
+                      Unit/Kamar {r.roomNumber} ({r.type})
+                    </option>
+                  ))}
               </select>
             </div>
           </div>
